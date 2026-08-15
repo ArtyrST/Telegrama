@@ -1,6 +1,6 @@
 ﻿namespace Telegrama.API.Features.Users
 {
-    public class User
+    public class UserEntity
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
