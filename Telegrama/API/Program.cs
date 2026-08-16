@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Telegrama.API.Data;
 using Telegrama.API.Features.Users;
+using Telegrama.API.Features.Users.Auth;
 using Telegrama.Repositories.User;
 
 namespace Telegrama.API
@@ -12,10 +13,17 @@ namespace Telegrama.API
             var builder = WebApplication.CreateBuilder(args);
             //services
             builder.Services.AddScoped<UserService>();
+            builder.Services.AddScoped<IJwtService, JwtService>();
 
             //repository
             builder.Services.AddScoped<IUserRepositoty, UserRepository>();
+
+            //Settings
+            builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("AuthSettings"));
+            
             // Add services to the container.
+
+
 
             builder.Services.AddAutoMapper(cfg => { }, typeof(UserMapper));
 

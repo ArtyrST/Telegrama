@@ -13,10 +13,16 @@ namespace Telegrama.API.Features.Users
         {
             _user = user;
         }
-        [HttpPost]
-        public async Task<IActionResult> CreateAsync(CreateUserDto dto)
+        [HttpPost("register")]
+        public async Task<IActionResult> CreateAsync([FromForm]CreateUserDto dto)
         {
             var user = await _user.CreateUserAsync(dto);
+            return this.GetResult(user);
+        }
+        [HttpPost("login")]
+        public async Task<IActionResult> LoginAsync([FromForm]LoginUserDto dto)
+        {
+            var user = await _user.LoginUserAsync(dto);
             return this.GetResult(user);
         }
     }

@@ -9,7 +9,12 @@ namespace Telegrama.API.Features.Users
         public UserMapper()
         {
             CreateMap<CreateUserDto, UserEntity>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore());
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.Password, opt => opt.Ignore());
+                
+
+            CreateMap<UserEntity, UserDto>();
+                
         }
     }
 }
