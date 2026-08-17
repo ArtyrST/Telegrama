@@ -27,7 +27,7 @@ namespace Telegrama.API.Features.Users.Auth
                         (
                             Encoding.UTF8.GetBytes(options.Value.SecretKey)
                         ), 
-                        SecurityAlgorithms.Aes128CbcHmacSha256
+                        SecurityAlgorithms.HmacSha256
                     )
 
                 );
