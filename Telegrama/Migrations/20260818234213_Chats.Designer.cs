@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Telegrama.API.Data;
@@ -11,9 +12,11 @@ using Telegrama.API.Data;
 namespace Telegrama.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260818234213_Chats")]
+    partial class Chats
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -57,9 +60,6 @@ namespace Telegrama.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<DateTime>("JoinedAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<int>("Role")
                         .HasColumnType("integer");
 
@@ -70,8 +70,7 @@ namespace Telegrama.Migrations
 
                     b.HasIndex("ChatId");
 
-                    b.HasIndex("UserId", "ChatId")
-                        .IsUnique();
+                    b.HasIndex("UserId");
 
                     b.ToTable("ChatMembersProfiles");
                 });
@@ -79,9 +78,7 @@ namespace Telegrama.Migrations
             modelBuilder.Entity("Telegrama.API.Features.Messages.MessageEntity", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ChatId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<bool>("IsChanged")
@@ -91,15 +88,15 @@ namespace Telegrama.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid>("SenderId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("Time")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ChatId");
+                    b.HasIndex("UserId");
 
                     b.ToTable("Messages");
                 });
@@ -157,37 +154,24 @@ namespace Telegrama.Migrations
 
             modelBuilder.Entity("Telegrama.API.Features.Messages.MessageEntity", b =>
                 {
-                    b.HasOne("Telegrama.API.Features.Chats.ChatEntity", "Chat")
+                    b.HasOne("Telegrama.API.Features.Users.UserEntity", "User")
                         .WithMany("Messages")
-                        .HasForeignKey("ChatId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("Telegrama.API.Features.Chats.ChatMemberEntity", "Sender")
-                        .WithMany("Messages")
-                        .HasForeignKey("Id")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .IsRequired();
-
-                    b.Navigation("Chat");
-
-                    b.Navigation("Sender");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Telegrama.API.Features.Chats.ChatEntity", b =>
                 {
                     b.Navigation("Members");
-
-                    b.Navigation("Messages");
-                });
-
-            modelBuilder.Entity("Telegrama.API.Features.Chats.ChatMemberEntity", b =>
-                {
-                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("Telegrama.API.Features.Users.UserEntity", b =>
                 {
+                    b.Navigation("Messages");
+
                     b.Navigation("Profiles");
                 });
 #pragma warning restore 612, 618

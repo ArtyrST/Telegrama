@@ -1,4 +1,5 @@
 ﻿using Telegrama.API.Features.Chats.Enums;
+using Telegrama.API.Features.Messages;
 using Telegrama.API.Features.Users;
 
 namespace Telegrama.API.Features.Chats
@@ -8,6 +9,7 @@ namespace Telegrama.API.Features.Chats
         public Guid Id {  get; set; }
         public string ChatProfileName { get; set; } = string.Empty;
         public ChatRoleEnum Role { get; set; }
+        public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
 
         //relations
         //users
@@ -16,6 +18,9 @@ namespace Telegrama.API.Features.Chats
         //chats
         public Guid ChatId { get; set; }
         public ChatEntity? Chat { get; set; }
+        //messages
+        public ICollection<MessageEntity> Messages { get; set; } = new List<MessageEntity>();
+
 
     }
 }

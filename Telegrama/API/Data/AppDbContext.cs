@@ -50,13 +50,13 @@ namespace Telegrama.API.Data
 
 
             //relations
-            //users with messages (one to many)
-            context.Entity<UserEntity>(u =>
+            //userProfile with messages (one to many)
+            context.Entity<ChatMemberEntity>(sender =>
             {
-                u.HasMany(u => u.Messages)
-                .WithOne(m => m.User)
-                .HasForeignKey(u => u.UserId)
-                .OnDelete(DeleteBehavior.NoAction);
+                sender.HasMany(messages => messages.Messages)
+                .WithOne(sender => sender.Sender)
+                .HasForeignKey(sender => sender.Id)
+                .OnDelete(DeleteBehavior.SetNull);
             });
             
             //users with chatprofile (one to one)
@@ -66,11 +66,31 @@ namespace Telegrama.API.Data
                 .WithOne(user => user.User)
                 .HasForeignKey(user => user.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+                
             });
+            //profiles unique index
+            context.Entity<ChatMemberEntity>(member =>
+            {
+                member.HasIndex(x => new
+                {
+                    x.UserId,
+                    x.ChatId
+                })
+                .IsUnique();
+            });
+
             //chats with chatsprofiles
             context.Entity<ChatEntity>(chat =>
             {
                 chat.HasMany(member => member.Members)
+                .WithOne(chat => chat.Chat)
+                .HasForeignKey(chat => chat.ChatId)
+                .OnDelete(DeleteBehavior.Cascade);
+            });
+            //chats with messages
+            context.Entity<ChatEntity>(chat =>
+            {
+                chat.HasMany(messages => messages.Messages)
                 .WithOne(chat => chat.Chat)
                 .HasForeignKey(chat => chat.ChatId)
                 .OnDelete(DeleteBehavior.Cascade);

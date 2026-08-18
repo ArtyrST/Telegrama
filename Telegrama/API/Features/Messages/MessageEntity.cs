@@ -1,4 +1,5 @@
-﻿using Telegrama.API.Features.Users;
+﻿using Telegrama.API.Features.Chats;
+using Telegrama.API.Features.Users;
 
 namespace Telegrama.API.Features.Messages
 {
@@ -11,8 +12,12 @@ namespace Telegrama.API.Features.Messages
 
 
         //relations
-        public Guid UserId { get; set; }
-        public UserEntity? User { get; set; }
+        //UserProfile
+        public ChatMemberEntity Sender { get; set; }
+        public Guid SenderId { get; set; }
+        //chat
+        public ChatEntity Chat { get; set; }
+        public Guid ChatId { get; set; }
 
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Telegrama.API.Features.Chats.Enums;
+using Telegrama.API.Features.Messages;
 using Telegrama.API.Features.Users;
 
 namespace Telegrama.API.Features.Chats
@@ -13,6 +14,8 @@ namespace Telegrama.API.Features.Chats
         //relations
         //UsersProfiles
         public ICollection<ChatMemberEntity> Members { get; set; } = new List<ChatMemberEntity>();
+        //messages
+        public ICollection<MessageEntity> Messages { get; set; } = new List<MessageEntity>();
         
         
     }

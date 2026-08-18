@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Telegrama.API.Data;
 using Telegrama.API.Features.Users;
 using Telegrama.API.Features.Users.Auth;
+using Telegrama.Repositories.Chat;
 using Telegrama.Repositories.User;
 
 namespace Telegrama.API
@@ -17,6 +18,7 @@ namespace Telegrama.API
 
             //repository
             builder.Services.AddScoped<IUserRepositoty, UserRepository>();
+            builder.Services.AddScoped<IChatRepository, ChatRepository>();
 
             //Settings
             builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("AuthSettings"));
