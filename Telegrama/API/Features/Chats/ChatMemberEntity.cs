@@ -11,7 +11,11 @@ namespace Telegrama.API.Features.Chats
 
         //relations
         //users
-        public UserEntity? ChatMemberId { get; set; }
+        public Guid UserId { get; set; }
+        public UserEntity? User { get; set; }
+        //chats
+        public Guid ChatId { get; set; }
+        public ChatEntity? Chat { get; set; }
 
     }
 }

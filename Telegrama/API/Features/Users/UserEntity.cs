@@ -16,10 +16,9 @@ namespace Telegrama.API.Features.Users
         //relations
         //Message
         public ICollection<MessageEntity> Messages { get; set; } = new List<MessageEntity>();
-        //Chats
-        public ICollection<ChatEntity> Chats { get; set; } = new List<ChatEntity>();
+
         //ChatMember
-        public ChatMemberEntity? UserChatProfileId { get; set; }
+        public ICollection<ChatMemberEntity> Profiles { get; set; } = new List<ChatMemberEntity>();
 
     }
 }

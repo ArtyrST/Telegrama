@@ -58,18 +58,22 @@ namespace Telegrama.API.Data
                 .HasForeignKey(u => u.UserId)
                 .OnDelete(DeleteBehavior.NoAction);
             });
-            //users with chats (many to many)
-            context.Entity<UserEntity>(u =>
-            {
-                u.HasMany(u => u.Chats)
-                .WithMany(c => c.Users);
-            });
+            
             //users with chatprofile (one to one)
-            context.Entity<UserEntity>(u =>
+            context.Entity<UserEntity>(user =>
             {
-                u.HasOne(u => u.UserChatProfileId)
-                .WithOne(p => p.ChatMemberId)
-                .OnDelete(DeleteBehavior.SetNull);
+                user.HasMany(profiles => profiles.Profiles)
+                .WithOne(user => user.User)
+                .HasForeignKey(user => user.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            });
+            //chats with chatsprofiles
+            context.Entity<ChatEntity>(chat =>
+            {
+                chat.HasMany(member => member.Members)
+                .WithOne(chat => chat.Chat)
+                .HasForeignKey(chat => chat.ChatId)
+                .OnDelete(DeleteBehavior.Cascade);
             });
 
             //todo: chat -> messages, chatprofile -> chats
