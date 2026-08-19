@@ -55,7 +55,7 @@ namespace Telegrama.API.Data
             {
                 sender.HasMany(messages => messages.Messages)
                 .WithOne(sender => sender.Sender)
-                .HasForeignKey(sender => sender.Id)
+                .HasForeignKey(sender => sender.SenderId)
                 .OnDelete(DeleteBehavior.SetNull);
             });
             

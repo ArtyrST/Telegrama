@@ -37,7 +37,7 @@ namespace Telegrama.Repositories.Chat
             await _context.Chats.AddAsync(entity);
             await _context.SaveChangesAsync();
         }
-        public async Task<ChatEntity?> FindPrivateChatAsync(Guid User1, Guid User2)
+        public async Task<ChatEntity?> FindDirectChatAsync(Guid User1, Guid User2)
         {
             return await _context.Chats
                 .FirstOrDefaultAsync(chat => chat.ChatType

@@ -14,7 +14,7 @@ namespace Telegrama.API.Features.Messages
         //relations
         //UserProfile
         public ChatMemberEntity Sender { get; set; }
-        public Guid SenderId { get; set; }
+        public Guid? SenderId { get; set; }
         //chat
         public ChatEntity Chat { get; set; }
         public Guid ChatId { get; set; }
