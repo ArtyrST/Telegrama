@@ -20,6 +20,8 @@ namespace Telegrama.API.Features.Users.Auth
             var jwtToken = new JwtSecurityToken
                 (
                 expires: DateTime.UtcNow.Add(options.Value.Expires),
+                audience: options.Value.Audience,
+                issuer: options.Value.Issuer,
                 claims: claims,
                 signingCredentials: new SigningCredentials
                     (

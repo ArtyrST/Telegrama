@@ -83,7 +83,7 @@ namespace Telegrama.API.Features.Users
             {
                 return ServiceResponse.Fail("Something wrong with getting user...",null);
             }
-            var entity = _mapper.Map<UserDto>(await _user.GetByIdAsync(id));
+            var entity = _mapper.Map<UserDto>(await _user.GetByIdAsync(id.ToString()));
 
             if ( entity == null )
             {

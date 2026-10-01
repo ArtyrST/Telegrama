@@ -16,10 +16,10 @@ namespace Telegrama.Repositories.User
 
         
 
-        public async Task<UserEntity> GetByIdAsync(Guid id)
+        public async Task<UserEntity> GetByIdAsync(string id)
         {
             
-            return await _context.Users.FirstOrDefaultAsync(user => user.Id == id);
+            return await _context.Users.FirstOrDefaultAsync(user => user.Id.ToString() == id);
         }
 
         public async Task<UserEntity> GetByEmailAsync(string email)

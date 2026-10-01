@@ -21,6 +21,28 @@ namespace Telegrama.Repositories.Chat
                                    .Any(member => member.UserId.Equals(userId)))
                 .ToListAsync();
         }
+        public async Task<bool> IsChatNameExist(string name)
+        {
+            return await _context.Chats.AnyAsync(chat => chat.Name == name);
+        }
+        public async Task<bool> IsChatExist(string id)
+        {
+            return await _context.Chats.AnyAsync(chat => chat.Id.ToString() == id);
+        }
+        public async Task<ChatEntity> FindChatByIdAsync(string id)
+        {
+            return await _context.Chats.FirstOrDefaultAsync(chats => chats.Id.ToString() == id);
+        }
+        public async Task<bool> JoinChatAsync(ChatMemberEntity member, string chatId)
+        {
+            var chat = await _context.Chats.FirstOrDefaultAsync(chat => chat.Id.ToString() == chatId);
+            if (chat == null) return false;
+            member.ChatId = chat.Id;
+            chat.Members.Add(member);
+            chat.UsersCount++;
+            int res = await _context.SaveChangesAsync();
+            return res != 0;
+        }
 
         public async Task<ChatEntity> GetByIdAsync(Guid chatId)
         {

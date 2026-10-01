@@ -32,8 +32,8 @@ namespace Telegrama.API.Features.Chats
 
 
 
-            var guestEntity = await _user.GetByIdAsync(dto.GuestId);
-            var creatorEntity = await _user.GetByIdAsync(userId);
+            var guestEntity = await _user.GetByIdAsync(dto.GuestId.ToString());
+            var creatorEntity = await _user.GetByIdAsync(userId.ToString());
             var guest = new ChatMemberEntity
             {
                 ChatProfileName = guestEntity.Name,

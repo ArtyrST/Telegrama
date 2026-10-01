@@ -1,24 +1,70 @@
-﻿<input id="user" placeholder="Ім'я">
-<input id="msg" placeholder="Повідомлення">
-<button id="send">Надіслати</button>
-<ul id="log"></ul>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js">
-</script>
-<script>
-     const room = "general";
-     const conn = new signalR.HubConnectionBuilder()
-     .withUrl("/hubs/chat")
-     .withAutomaticReconnect()
-     .build();
-     // обробники ДО start()
-     conn.on("ReceiveMessage", (user, text) => {
-     const li = document.createElement("li");
-     li.textContent = `${user}: ${text}`; // textContent, не innerHTML (XSS)
-     document.getElementById("log").appendChild(li);
-     });
-     // групи після реконекту
-     conn.onreconnected(() => conn.invoke("JoinRoom", room));
-     conn.start().then(() => conn.invoke("JoinRoom", room));
-     document.getElementById("send").onclick = () =>
-     conn.invoke("SendToRoom", room, user.value, msg.value);
-</script>
+﻿<!DOCTYPE html>
+<html>
+<body>
+    <div id="loginBox">
+        <input id="email" placeholder="Email">
+        <input id="password" type="password" placeholder="Пароль">
+        <button id="loginBtn">Увійти</button>
+    </div>
+
+    <div id="chatBox" style="display:none">
+        <input id="room" value="general">
+        <button id="joinBtn">Приєднатись</button><br>
+        <input id="msg" placeholder="Повідомлення">
+        <button id="sendBtn">Надіслати</button>
+    </div>
+
+    <ul id="log"></ul>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+    <script>
+            let token = null;
+            let room = "general";
+            const $ = id => document.getElementById(id);
+            const log = text => {
+              const li = document.createElement("li");
+              li.textContent = text;           // textContent, не innerHTML
+              $("log").appendChild(li);
+            };
+
+            $("loginBtn").onclick = async () => {
+              const res = await fetch("/api/users/login", {
+                method: "POST",
+                body: new URLSearchParams({ Email: $("email").value, Password: $("password").value })
+              });
+              const data = await res.json();
+              if (!data.isSuccess) { log("Помилка входу: " + data.message); return; }
+
+              token = data.payLoad;
+              $("loginBox").style.display = "none";
+              $("chatBox").style.display = "block";
+              await connect();
+            };
+
+            async function connect() {
+              const conn = new signalR.HubConnectionBuilder()
+                .withUrl("/hubs/chat", { accessTokenFactory: () => token })
+                .withAutomaticReconnect()
+                .build();
+
+              conn.on("ReceiveMessage", (user, text) => log(`${user}: ${text}`));
+              conn.onreconnected(() => conn.invoke("JoinRoom", room));
+
+              try {
+                await conn.start();
+                log("Підключено");
+                await conn.invoke("JoinRoom", room);
+              } catch (e) {
+                log("Не вдалося підключитись: " + e);
+              }
+
+              $("joinBtn").onclick = async () => {
+                room = $("room").value;
+                await conn.invoke("JoinRoom", room);
+                log("Ви в кімнаті " + room);
+              };
+              $("sendBtn").onclick = () => conn.invoke("SendToRoom", room, $("msg").value);
+            }
+    </script>
+</body>
+</html>
