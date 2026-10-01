@@ -6,6 +6,9 @@ namespace Telegrama.Repositories.Chat
     {
         public Task<ChatEntity> GetByIdAsync(Guid chatId);
         public Task<ChatEntity> GetByNameAsync(string name);
+        public Task<bool> AddAsync(ChatEntity entity);
         public Task<List<ChatEntity>> GetAllByUserAsync(Guid userId);
+        public Task<bool> IsDirectExist(Guid User1, Guid User2);
+        public Task<ChatEntity?> FindDirectChatAsync(Guid User1, Guid User2);
     }
 }

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Telegrama.API.Data;
 using Telegrama.API.Features.Users;
 using Telegrama.API.Features.Users.Auth;
+using Telegrama.API.Hubs;
 using Telegrama.Repositories.Chat;
 using Telegrama.Repositories.User;
 
@@ -22,10 +23,10 @@ namespace Telegrama.API
 
             //Settings
             builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("AuthSettings"));
-            
+
             // Add services to the container.
 
-
+            builder.Services.AddSignalR();
 
             builder.Services.AddAutoMapper(cfg => { }, typeof(UserMapper));
 
@@ -49,7 +50,9 @@ namespace Telegrama.API
                     options.SwaggerEndpoint("/openapi/v1.json", "Telegrama API v1");
                 });
             }
-
+            app.UseDefaultFiles();
+            app.UseStaticFiles();
+            app.MapHub<ChatHub>("/hubs/chat");
             app.UseHttpsRedirection();
 
             app.UseAuthorization();

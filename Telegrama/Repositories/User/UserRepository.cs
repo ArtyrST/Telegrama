@@ -26,13 +26,17 @@ namespace Telegrama.Repositories.User
         {
             return await _context.Users.FirstOrDefaultAsync(user => user.Email == email);
         }
+        public async Task<UserEntity> GetByTagAsync(string tag)
+        {
+            return await _context.Users.FirstOrDefaultAsync(user => user.UserTag.ToLower().Equals(tag.ToLower()));
+        }
 
-        public async Task<UserEntity> AddAsync(UserEntity user)
+        public async Task<bool> AddAsync(UserEntity user)
         {
             
             await _context.AddAsync(user);
-            await _context.SaveChangesAsync();
-            return user;
+            int res = await _context.SaveChangesAsync();
+            return res != 0;
             
         }   
 

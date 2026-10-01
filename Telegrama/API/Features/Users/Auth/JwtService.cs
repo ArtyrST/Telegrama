@@ -14,7 +14,7 @@ namespace Telegrama.API.Features.Users.Auth
             {
                 new Claim("UserName", user.Name),
                 new Claim("UserTag", user.UserTag),
-                new Claim("UserId", user.Id.ToString())
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
 
             };
             var jwtToken = new JwtSecurityToken

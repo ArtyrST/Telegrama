@@ -32,15 +32,25 @@ namespace Telegrama.Repositories.Chat
             return await _context.Chats.FirstOrDefaultAsync(c => c.Name.ToLower().Equals(name.ToLower()));
         }
 
-        public async Task AddAsync(ChatEntity entity)
+        public async Task<bool> AddAsync(ChatEntity entity)
         {
             await _context.Chats.AddAsync(entity);
-            await _context.SaveChangesAsync();
+            
+            int res = await _context.SaveChangesAsync();
+            return res != 0;
         }
         public async Task<ChatEntity?> FindDirectChatAsync(Guid User1, Guid User2)
         {
             return await _context.Chats
                 .FirstOrDefaultAsync(chat => chat.ChatType
+                                                    .Equals(ChatsEnum.Private) &&
+                                                    chat.Members.Any(member => member.UserId == User1) &&
+                                                    chat.Members.Any(member => member.UserId == User2));
+        }
+        public async Task<bool> IsDirectExist(Guid User1, Guid User2)
+        {
+            return await _context.Chats
+                .AnyAsync(chat => chat.ChatType
                                                     .Equals(ChatsEnum.Private) &&
                                                     chat.Members.Any(member => member.UserId == User1) &&
                                                     chat.Members.Any(member => member.UserId == User2));

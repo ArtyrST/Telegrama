@@ -1,0 +1,24 @@
+﻿<input id="user" placeholder="Ім'я">
+<input id="msg" placeholder="Повідомлення">
+<button id="send">Надіслати</button>
+<ul id="log"></ul>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js">
+</script>
+<script>
+     const room = "general";
+     const conn = new signalR.HubConnectionBuilder()
+     .withUrl("/hubs/chat")
+     .withAutomaticReconnect()
+     .build();
+     // обробники ДО start()
+     conn.on("ReceiveMessage", (user, text) => {
+     const li = document.createElement("li");
+     li.textContent = `${user}: ${text}`; // textContent, не innerHTML (XSS)
+     document.getElementById("log").appendChild(li);
+     });
+     // групи після реконекту
+     conn.onreconnected(() => conn.invoke("JoinRoom", room));
+     conn.start().then(() => conn.invoke("JoinRoom", room));
+     document.getElementById("send").onclick = () =>
+     conn.invoke("SendToRoom", room, user.value, msg.value);
+</script>

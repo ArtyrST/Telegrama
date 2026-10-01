@@ -1,5 +1,4 @@
 ﻿using Telegrama.API.Features.Chats;
-using Telegrama.API.Features.Users;
 
 namespace Telegrama.API.Features.Messages
 {
