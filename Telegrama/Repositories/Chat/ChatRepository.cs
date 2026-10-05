@@ -33,10 +33,21 @@ namespace Telegrama.Repositories.Chat
         {
             return await _context.Chats.FirstOrDefaultAsync(chats => chats.Id.ToString() == id);
         }
+        public async Task<bool> IsUserExistInChat(string memberId, string chatId)
+        {
+            var chat = await _context.Chats.FirstOrDefaultAsync(chat => chat.Id.ToString() == chatId);
+            var user = await _context.ChatMembersProfiles.FirstOrDefaultAsync(member => member.Id.ToString() == memberId);
+            if (chat.Members.Any(member => member.Id == user.Id))
+            {
+                return false;
+            }
+            return true;
+        }
         public async Task<bool> JoinChatAsync(ChatMemberEntity member, string chatId)
         {
             var chat = await _context.Chats.FirstOrDefaultAsync(chat => chat.Id.ToString() == chatId);
             if (chat == null) return false;
+            if (chat.ChatType != ChatsEnum.Public) return false;
             member.ChatId = chat.Id;
             chat.Members.Add(member);
             chat.UsersCount++;

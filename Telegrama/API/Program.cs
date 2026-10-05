@@ -21,7 +21,7 @@ namespace Telegrama.API
             //services
             builder.Services.AddScoped<UserService>();
             builder.Services.AddScoped<IJwtService, JwtService>();
-            builder.Services.AddScoped<HubService>();
+            builder.Services.AddScoped<ChatService>();
 
             //repository
             builder.Services.AddScoped<IUserRepositoty, UserRepository>();

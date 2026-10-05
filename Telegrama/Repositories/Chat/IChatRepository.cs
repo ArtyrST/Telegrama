@@ -12,6 +12,7 @@ namespace Telegrama.Repositories.Chat
         public Task<bool> IsChatNameExist(string name);
         public Task<bool> IsChatExist(string id);
         public Task<bool> JoinChatAsync(ChatMemberEntity member, string chatId);
+        public Task<bool> IsUserExistInChat(string memberId, string chatId);
         public Task<ChatEntity> FindChatByIdAsync(string id);
         public Task<ChatEntity?> FindDirectChatAsync(Guid User1, Guid User2);
     }

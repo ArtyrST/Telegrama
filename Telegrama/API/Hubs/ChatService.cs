@@ -7,12 +7,12 @@ using Telegrama.Repositories.User;
 
 namespace Telegrama.API.Hubs
 {
-    public class HubService
+    public class ChatService
     {
         private readonly IChatRepository _chat;
         private readonly IHttpContextAccessor _httpContext;
         private readonly IUserRepositoty _user;
-        public HubService(IChatRepository chat, IHttpContextAccessor httpContext, IUserRepositoty user)
+        public ChatService(IChatRepository chat, IHttpContextAccessor httpContext, IUserRepositoty user)
         {
             _chat = chat;
             _httpContext = httpContext;
@@ -58,6 +58,7 @@ namespace Telegrama.API.Hubs
             {
                 return ServiceResponse.Fail("This chat not exist", null);
             }
+            if (!await _chat.IsUserExistInChat(chatId, userId)) return ServiceResponse.Fail("This user already in chat", null);
             var member = new ChatMemberEntity
             {
                 ChatProfileName = entity.Name,

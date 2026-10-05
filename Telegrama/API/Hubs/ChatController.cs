@@ -1,15 +1,17 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Telegrama.API.Data;
 using Telegrama.API.Features.Chats.Dtos;
 
 namespace Telegrama.API.Hubs
 {
+    [Authorize]
     [ApiController]
     [Route("api/chats")]
     public class ChatController : ControllerBase
     {
-        private readonly HubService _hubService;
-        public ChatController(HubService hubService)
+        private readonly ChatService _hubService;
+        public ChatController(ChatService hubService)
         {
             _hubService = hubService;
         }

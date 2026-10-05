@@ -1,70 +1,575 @@
 ﻿<!DOCTYPE html>
-<html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Telegrama: тестовий клієнт</title>
+    <style>
+        :root {
+            --bg: #f3f5f4;
+            --panel: #ffffff;
+            --ink: #1c2523;
+            --muted: #6a7773;
+            --line: #dde3e0;
+            --accent: #0f766e;
+            --accent-ink: #ffffff;
+            --mine: #d6efe9;
+            --other: #eef1ef;
+            --danger: #b42318;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #111716;
+                --panel: #192120;
+                --ink: #e6ecea;
+                --muted: #8a9a96;
+                --line: #2a3533;
+                --accent: #2dd4bf;
+                --accent-ink: #06201d;
+                --mine: #14403b;
+                --other: #222c2a;
+                --danger: #f97066;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font: 14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+        }
+
+        #app {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            height: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        aside {
+            background: var(--panel);
+            border-right: 1px solid var(--line);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: auto;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        section {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        h1 {
+            font-size: 16px;
+            margin: 0 0 2px;
+        }
+
+        h2 {
+            font-size: 13px;
+            margin: 0 0 8px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        input, select, button {
+            font: inherit;
+            color: inherit;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px 10px;
+            margin: 0 0 6px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: var(--bg);
+        }
+
+            input:focus, select:focus, button:focus-visible {
+                outline: 2px solid var(--accent);
+                outline-offset: 1px;
+            }
+
+        button {
+            padding: 8px 12px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: var(--panel);
+            cursor: pointer;
+        }
+
+            button.primary {
+                background: var(--accent);
+                color: var(--accent-ink);
+                border-color: var(--accent);
+                font-weight: 600;
+            }
+
+            button.link {
+                border: 0;
+                background: none;
+                color: var(--accent);
+                padding: 4px 0;
+            }
+
+        .row {
+            display: flex;
+            gap: 6px;
+        }
+
+            .row > * {
+                flex: 1;
+            }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--muted);
+        }
+
+            .dot.on {
+                background: #16a34a;
+            }
+
+            .dot.wait {
+                background: #d97706;
+            }
+
+        #chats {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+            #chats li {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 10px;
+                border-radius: 6px;
+                cursor: pointer;
+            }
+
+                #chats li:hover {
+                    background: var(--bg);
+                }
+
+                #chats li.active {
+                    background: var(--mine);
+                }
+
+            #chats .name {
+                flex: 1;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            #chats .copy {
+                font-size: 12px;
+                color: var(--muted);
+                padding: 2px 4px;
+            }
+
+        .badge {
+            background: var(--accent);
+            color: var(--accent-ink);
+            border-radius: 10px;
+            padding: 0 7px;
+            font-size: 12px;
+        }
+
+        header.top {
+            padding: 12px 16px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--line);
+            font-weight: 600;
+        }
+
+        #msgs {
+            flex: 1;
+            overflow: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .empty {
+            margin: auto;
+            color: var(--muted);
+            text-align: center;
+            max-width: 34ch;
+        }
+
+        .msg {
+            max-width: 70%;
+            padding: 7px 11px;
+            border-radius: 10px;
+            background: var(--other);
+            overflow-wrap: anywhere;
+        }
+
+            .msg.mine {
+                align-self: flex-end;
+                background: var(--mine);
+            }
+
+            .msg .who {
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--accent);
+            }
+
+            .msg .time {
+                font-size: 11px;
+                color: var(--muted);
+                margin-left: 8px;
+            }
+
+        form#send {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--panel);
+            border-top: 1px solid var(--line);
+        }
+
+            form#send input {
+                margin: 0;
+            }
+
+            form#send button {
+                flex: 0 0 auto;
+            }
+
+        #toast {
+            position: fixed;
+            left: 50%;
+            bottom: 20px;
+            transform: translateX(-50%);
+            background: var(--ink);
+            color: var(--bg);
+            padding: 9px 14px;
+            border-radius: 8px;
+            max-width: 90%;
+            display: none;
+            z-index: 5;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+
+        @media (max-width:760px) {
+            #app {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+            }
+
+            aside {
+                max-height: 46vh;
+                border-right: 0;
+                border-bottom: 1px solid var(--line);
+            }
+        }
+    </style>
+</head>
 <body>
-    <div id="loginBox">
-        <input id="email" placeholder="Email">
-        <input id="password" type="password" placeholder="Пароль">
-        <button id="loginBtn">Увійти</button>
-    </div>
+    <div id="app">
+        <aside>
+            <section id="auth">
+                <h1>Telegrama</h1>
+                <h2 id="authTitle">Вхід</h2>
+                <div id="regFields" hidden>
+                    <input id="rName" placeholder="Ім'я">
+                    <input id="rTag" placeholder="Тег (без @)">
+                    <input id="rPhone" placeholder="Телефон" value="+380501234567">
+                </div>
+                <input id="email" type="email" placeholder="Email" autocomplete="username">
+                <input id="password" type="password" placeholder="Пароль" autocomplete="current-password">
+                <div class="row"><button id="authBtn" class="primary">Увійти</button></div>
+                <button id="authToggle" class="link" type="button">Немає акаунта? Зареєструватися</button>
+            </section>
 
-    <div id="chatBox" style="display:none">
-        <input id="room" value="general">
-        <button id="joinBtn">Приєднатись</button><br>
-        <input id="msg" placeholder="Повідомлення">
-        <button id="sendBtn">Надіслати</button>
-    </div>
+            <div id="mainSide" hidden>
+                <section>
+                    <div class="row" style="align-items:center">
+                        <strong id="me" style="flex:2"></strong>
+                        <button id="logout">Вийти</button>
+                    </div>
+                    <div class="status"><span id="dot" class="dot"></span><span id="statusText">не підключено</span></div>
+                </section>
+                <section>
+                    <h2>Новий чат</h2>
+                    <input id="cName" placeholder="Назва чату">
+                    <select id="cType">
+                        <option value="1">Публічний</option>
+                        <option value="0">Приватний</option>
+                        <option value="2">За посиланням</option>
+                    </select>
+                    <button id="createBtn" class="primary" style="width:100%">Створити чат</button>
+                </section>
+                <section>
+                    <h2>Приєднатися за id</h2>
+                    <input id="jId" placeholder="id публічного чату">
+                    <button id="joinBtn" style="width:100%">Приєднатися</button>
+                </section>
+                <section>
+                    <h2>Мої чати</h2>
+                    <ul id="chats"></ul>
+                    <div id="noChats" class="status">Створіть чат або приєднайтесь до чужого.</div>
+                </section>
+            </div>
+        </aside>
 
-    <ul id="log"></ul>
+        <main>
+            <header class="top" id="title">Оберіть чат</header>
+            <div id="msgs"><div class="empty">Тут з'являться повідомлення. Щоб перевірити обмін, відкрийте цю сторінку ще й у вікні інкогніто під іншим користувачем.</div></div>
+            <form id="send" hidden>
+                <input id="text" placeholder="Повідомлення" autocomplete="off" maxlength="4000">
+                <button class="primary">Надіслати</button>
+            </form>
+        </main>
+    </div>
+    <div id="toast" role="status"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
     <script>
-            let token = null;
-            let room = "general";
-            const $ = id => document.getElementById(id);
-            const log = text => {
-              const li = document.createElement("li");
-              li.textContent = text;           // textContent, не innerHTML
-              $("log").appendChild(li);
-            };
+// ====== Налаштування: підправте під свої адреси, якщо вони відрізняються ======
+const API = {
+          register: "/api/users/register",          // FromForm
+          login:    "/api/users/login",             // FromForm, токен у payLoad
+          chats:    "/api/chats",                   // POST (JSON) створює, GET віддає список моїх чатів
+          join: id => `/api/chats/${id}/join-chat`,  // POST
+          history:  id => `/api/chats/${id}/messages` // GET
+};
+const HUB = { url: "/hubs/chat", subscribe: "SubscribeToChat", send: "SendMessage", receive: "ReceiveMessage" };
+// ==============================================================================
 
-            $("loginBtn").onclick = async () => {
-              const res = await fetch("/api/users/login", {
-                method: "POST",
-                body: new URLSearchParams({ Email: $("email").value, Password: $("password").value })
-              });
-              const data = await res.json();
-              if (!data.isSuccess) { log("Помилка входу: " + data.message); return; }
+const $ = s => document.querySelector(s);
+let token = sessionStorage.getItem("tg_token"), me = null, conn = null, current = null, registering = false;
+let chats = {}, msgs = {}, unread = {};
 
-              token = data.payLoad;
-              $("loginBox").style.display = "none";
-              $("chatBox").style.display = "block";
-              await connect();
-            };
+function toast(t) { const e = $("#toast"); e.textContent = t; e.style.display = "block"; clearTimeout(toast.t); toast.t = setTimeout(() => e.style.display = "none", 4000); }
+function setStatus(kind, text) { $("#dot").className = "dot " + kind; $("#statusText").textContent = text; }
 
-            async function connect() {
-              const conn = new signalR.HubConnectionBuilder()
-                .withUrl("/hubs/chat", { accessTokenFactory: () => token })
-                .withAutomaticReconnect()
-                .build();
+function parseJwt(t) {
+          try {
+            const b = t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+            return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b), c => c.charCodeAt(0))));
+          } catch { return null; }
+}
 
-              conn.on("ReceiveMessage", (user, text) => log(`${user}: ${text}`));
-              conn.onreconnected(() => conn.invoke("JoinRoom", room));
+async function api(url, { method = "GET", json, form } = {}) {
+          const headers = {}; let body;
+          if (token) headers.Authorization = "Bearer " + token;
+          if (json) { headers["Content-Type"] = "application/json"; body = JSON.stringify(json); }
+          else if (form) body = new URLSearchParams(form);
+          let r;
+          try { r = await fetch(url, { method, headers, body }); } catch { return { ok: false, status: 0, data: null }; }
+          let data = null; try { data = await r.json(); } catch {}
+          if (r.status === 401 && token) { toast("Сесія закінчилась (токен живе 15 хв). Увійдіть знову."); logout(); }
+          return { ok: r.ok, status: r.status, data };
+}
+const fail = r => toast(r.data?.message || (r.status ? "Помилка " + r.status : "Немає зв'язку з сервером"));
 
-              try {
-                await conn.start();
-                log("Підключено");
-                await conn.invoke("JoinRoom", room);
-              } catch (e) {
-                log("Не вдалося підключитись: " + e);
-              }
+// ---------- Автентифікація ----------
+$("#authToggle").onclick = () => {
+          registering = !registering;
+          $("#regFields").hidden = !registering;
+          $("#authTitle").textContent = registering ? "Реєстрація" : "Вхід";
+          $("#authBtn").textContent = registering ? "Зареєструватися" : "Увійти";
+          $("#authToggle").textContent = registering ? "Уже є акаунт? Увійти" : "Немає акаунта? Зареєструватися";
+};
 
-              $("joinBtn").onclick = async () => {
-                room = $("room").value;
-                await conn.invoke("JoinRoom", room);
-                log("Ви в кімнаті " + room);
-              };
-              $("sendBtn").onclick = () => conn.invoke("SendToRoom", room, $("msg").value);
-            }
+$("#authBtn").onclick = async () => {
+          const Email = $("#email").value.trim(), Password = $("#password").value;
+          if (!Email || !Password) return toast("Введіть email і пароль");
+          if (registering) {
+            const r = await api(API.register, { method: "POST", form: {
+              Name: $("#rName").value, Email, PhoneNumber: $("#rPhone").value, UserTag: $("#rTag").value, Password } });
+            if (!r.ok || !r.data?.isSuccess) return fail(r);
+            toast("Акаунт створено, входимо...");
+          }
+          const r = await api(API.login, { method: "POST", form: { Email, Password } });
+          if (!r.ok || !r.data?.isSuccess) return fail(r);
+          token = r.data.payLoad; sessionStorage.setItem("tg_token", token);
+          enterApp();
+};
+
+function logout() {
+          token = null; sessionStorage.removeItem("tg_token");
+          if (conn) { conn.stop(); conn = null; }
+          chats = {}; msgs = {}; unread = {}; current = null;
+          $("#auth").hidden = false; $("#mainSide").hidden = true; $("#send").hidden = true;
+          $("#title").textContent = "Оберіть чат"; renderMsgs(); renderChats();
+}
+$("#logout").onclick = logout;
+
+async function enterApp() {
+          const p = parseJwt(token);
+          if (!p) return logout();
+          me = { id: p["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"], name: p.UserName, tag: p.UserTag };
+          $("#me").textContent = `${me.name} ${me.tag || ""}`;
+          $("#auth").hidden = true; $("#mainSide").hidden = false;
+          try { chats = JSON.parse(localStorage.getItem("tg_chats_" + me.id) || "{}"); } catch { chats = {}; }
+          renderChats();
+          await loadChats();
+          await connect();
+}
+
+// ---------- Чати ----------
+function saveChats() { try { localStorage.setItem("tg_chats_" + me.id, JSON.stringify(chats)); } catch {} }
+function addChat(id, name) { chats[id] = { id, name: name || chats[id]?.name || "Чат " + id.slice(0, 8) }; saveChats(); renderChats(); }
+
+async function loadChats() {
+          const r = await api(API.chats);               // потрібен GET /api/chats; без нього працюють локально збережені чати
+          const list = Array.isArray(r.data) ? r.data : r.data?.payLoad;
+          if (r.ok && Array.isArray(list)) list.forEach(c => addChat(c.id, c.name));
+}
+
+function renderChats() {
+          const ul = $("#chats"); ul.innerHTML = "";
+          const items = Object.values(chats);
+          $("#noChats").hidden = items.length > 0;
+          items.forEach(c => {
+            const li = document.createElement("li"); if (c.id === current) li.className = "active";
+            const n = document.createElement("span"); n.className = "name"; n.textContent = c.name;
+            li.append(n);
+            if (unread[c.id]) { const b = document.createElement("span"); b.className = "badge"; b.textContent = unread[c.id]; li.append(b); }
+            const cp = document.createElement("button"); cp.className = "link copy"; cp.textContent = "id"; cp.title = "Копіювати id чату";
+            cp.onclick = e => { e.stopPropagation(); navigator.clipboard?.writeText(c.id); toast("id скопійовано"); };
+            li.append(cp);
+            li.onclick = () => openChat(c.id);
+            ul.append(li);
+          });
+}
+
+$("#createBtn").onclick = async () => {
+          const name = $("#cName").value.trim();
+          if (!name) return toast("Введіть назву чату");
+          const r = await api(API.chats, { method: "POST", json: { name, chatType: +$("#cType").value } });
+          if (!r.ok || !r.data?.isSuccess) return fail(r);
+          const id = r.data.payLoad;
+          $("#cName").value = "";
+          if (typeof id !== "string") return toast("Чат створено, але сервер не повернув його id (поверніть chat.Id у payLoad).");
+          addChat(id, name); await subscribe(id); openChat(id);
+};
+
+$("#joinBtn").onclick = async () => {
+          const id = $("#jId").value.trim();
+          if (!id) return toast("Вставте id чату");
+          const r = await api(API.join(id), { method: "POST" });
+          if (!r.ok || !r.data?.isSuccess) return fail(r);
+          $("#jId").value = "";
+          addChat(id); await subscribe(id); openChat(id);
+};
+
+async function openChat(id) {
+          current = id; unread[id] = 0;
+          $("#title").textContent = chats[id].name; $("#send").hidden = false; $("#text").focus();
+          renderChats(); renderMsgs();
+          const r = await api(API.history(id));         // потрібен GET /api/chats/{id}/messages; якщо його немає, історії не буде
+          const list = Array.isArray(r.data) ? r.data : r.data?.payLoad;
+          if (r.ok && Array.isArray(list)) {
+            [...list].reverse().forEach(m => pushMsg({ id: m.id, chatId: id, senderName: m.senderName || m.sender || "?", text: m.text ?? m.message, time: m.time }, false));
+            if (current === id) renderMsgs();
+          }
+}
+
+// ---------- Повідомлення ----------
+function pushMsg(m, count = true) {
+          const list = msgs[m.chatId] ||= [];
+          if (m.id && list.some(x => x.id === m.id)) return;
+          list.push(m);
+          if (count && m.chatId !== current) { unread[m.chatId] = (unread[m.chatId] || 0) + 1; renderChats(); }
+}
+
+function renderMsgs() {
+          const box = $("#msgs"); box.innerHTML = "";
+          const list = msgs[current] || [];
+          if (!list.length) {
+            const e = document.createElement("div"); e.className = "empty";
+            e.textContent = current ? "У цьому чаті ще немає повідомлень. Напишіть першим." : "Оберіть чат ліворуч або створіть новий.";
+            box.append(e); return;
+          }
+          list.forEach(m => {
+            const d = document.createElement("div"); d.className = "msg" + (m.senderName === me.name ? " mine" : "");
+            const who = document.createElement("div"); who.className = "who"; who.textContent = m.senderName;
+            const t = document.createElement("span"); t.className = "time";
+            t.textContent = new Date(m.time || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            who.append(t);
+            const txt = document.createElement("div"); txt.textContent = m.text;   // textContent, не innerHTML
+            d.append(who, txt); box.append(d);
+          });
+          box.scrollTop = box.scrollHeight;
+}
+
+$("#send").onsubmit = async e => {
+          e.preventDefault();
+          const text = $("#text").value.trim();
+          if (!text || !current) return;
+          try { await conn.invoke(HUB.send, current, text); $("#text").value = ""; }
+          catch (err) { toast("Не надіслано: " + (err.message || err).toString().replace(/^.*HubException: /, "")); }
+};
+
+// ---------- SignalR ----------
+async function subscribe(id) {
+          try { await conn.invoke(HUB.subscribe, id); } catch (e) { toast("Підписка не вдалась: " + e.message); }
+}
+async function subscribeAll() { for (const id of Object.keys(chats)) await subscribe(id); }
+
+async function connect() {
+          conn = new signalR.HubConnectionBuilder()
+            .withUrl(HUB.url, { accessTokenFactory: () => token })
+            .withAutomaticReconnect().build();
+
+          conn.on(HUB.receive, (a, b) => {
+            // підтримує і об'єкт { id, chatId, senderName, text, time }, і старий формат (user, text)
+            const m = typeof a === "object" ? a : { chatId: current, senderName: a, text: b, time: new Date().toISOString() };
+            if (!m.chatId) return;
+            if (!chats[m.chatId]) addChat(m.chatId);
+            pushMsg(m);
+            if (m.chatId === current) renderMsgs();
+          });
+          conn.on("MemberJoined", d => toast(`Новий учасник у чаті ${chats[d.chatId]?.name || ""}`));
+
+          conn.onreconnecting(() => setStatus("wait", "перепідключення..."));
+          conn.onreconnected(async () => { setStatus("on", "підключено"); await subscribeAll(); });
+          conn.onclose(() => setStatus("", "відключено"));
+
+          try { await conn.start(); setStatus("on", "підключено"); await subscribeAll(); }
+          catch (e) { setStatus("", "не вдалося підключитись"); toast("SignalR: " + e.message); }
+}
+
+if (token) enterApp();
     </script>
 </body>
 </html>
