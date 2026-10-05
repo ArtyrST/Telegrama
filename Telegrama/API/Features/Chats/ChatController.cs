@@ -33,5 +33,11 @@ namespace Telegrama.API.Features.Chats
             var response = await _chat.CreateDirectAsync(dto);
             return this.GetResult(response);
         }
+        [HttpGet("my")]
+        public async Task<IActionResult> GetAllChatsAsync()
+        {
+            var response = await _chat.GetAllChatsAsync();
+            return this.GetResult(response);
+        }
     }
 }

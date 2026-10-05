@@ -1,8 +1,9 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using Telegrama.API.Data;
 using Telegrama.API.Features.Chats.Dtos;
 using Telegrama.API.Features.Chats.Enums;
-using Telegrama.API.Features.Users;
 using Telegrama.Repositories.Chat;
 using Telegrama.Repositories.User;
 
@@ -87,7 +88,7 @@ namespace Telegrama.API.Features.Chats
             {
                 return ServiceResponse.Fail("Chat with this name already exist", null);
             }
-            var userId = _httpAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier).ToString();
+            var userId = _httpAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!.ToString();
             var userName = _httpAccessor.HttpContext.User.FindFirstValue(ClaimTypes.Name);
 
             bool res = await _chat.AddAsync(new ChatEntity
@@ -133,6 +134,14 @@ namespace Telegrama.API.Features.Chats
                 return ServiceResponse.Fail("Something wrong with joining to chat", null);
             }
             return ServiceResponse.Success("Success", null);
+        }
+        public async Task<ServiceResponse> GetAllChatsAsync()
+        {
+            Guid userId = Guid.Parse(_httpAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var chats = _chat.GetAllByUserAsync(userId);
+            if (chats == null) return ServiceResponse.Fail("No chats for this user", null);
+            return ServiceResponse.Success("Successfuly get all user chats", chats);
+
         }
     }
 }

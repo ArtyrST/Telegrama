@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 using Telegrama.API.Data;
 using Telegrama.API.Extensions;
+using Telegrama.API.Features.Messages;
 using Telegrama.Repositories.Chat;
+using Telegrama.Repositories.Message;
 
-namespace Telegrama.API.Hubs
+namespace Telegrama.API.Features.Chats
 {
     [Authorize]   
     public class ChatHub : Hub
@@ -13,10 +15,12 @@ namespace Telegrama.API.Hubs
         
         private readonly IChatRepository _chatRepository;
         private readonly IHttpContextAccessor _contextAccessor;
-        public ChatHub(IChatRepository chatRepository, IHttpContextAccessor contextAccessor)
+        private readonly MessageRepository _messages;
+        public ChatHub(MessageRepository messages, IChatRepository chatRepository, IHttpContextAccessor contextAccessor)
         { 
             _chatRepository = chatRepository;
             _contextAccessor = contextAccessor;
+            _messages = messages;
         }
 
         public async Task JoinRoom(Guid room)
@@ -30,6 +34,20 @@ namespace Telegrama.API.Hubs
         }
         public async Task SendToRoom(string chatId, string message)
         {
+            Guid userId = Context.User!.GetUserId();
+            //if (_chatRepository.)
+            var entity = new MessageEntity
+            {
+                ChatId = Guid.Parse(chatId),
+                SenderId = userId,
+                Message = message,
+                IsChanged = false
+            };
+            if (!await _chatRepository.IsUserExistInChat(userId, Guid.Parse(chatId)))
+            {
+                throw new HubException("User is not in this chat");
+            }
+            await _messages.CreateAsync(entity);
             var name = Context.User?.FindFirst("UserName")?.Value ?? "unknown";
             await Clients.Group(chatId).SendAsync("ReceiveMessage", name, message);
         }
