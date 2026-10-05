@@ -11,8 +11,8 @@ namespace Telegrama.Repositories.User
         public Task<UserEntity> GetByTagAsync(string tag);
         public Task<bool> AddAsync(UserEntity user);
         public Task<List<UserEntity>> GetAllAsync();
-        public Task<bool> IsUserEmailUnique(string email);
-        public Task<bool> IsUserTagUnique(string tag);
+        public Task<bool> EmailUnique(string email);
+        public Task<bool> TagUnique(string tag);
 
 
     }

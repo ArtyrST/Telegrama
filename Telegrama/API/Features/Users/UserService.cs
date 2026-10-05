@@ -24,11 +24,11 @@ namespace Telegrama.API.Features.Users
             {
                 return ServiceResponse.Fail("The form is empty", null);
             }
-            if (await _user.IsUserEmailUnique(dto.Email))
+            if (await _user.EmailUnique(dto.Email))
             {
                 return ServiceResponse.Fail($"The user with email: {dto.Email}, already create", null);
             }
-            if (await _user.IsUserTagUnique(dto.UserTag))
+            if (await _user.TagUnique(dto.UserTag))
             {
                 return ServiceResponse.Fail($"The user with tag: {dto.UserTag}, already create", null);
             }
@@ -56,7 +56,7 @@ namespace Telegrama.API.Features.Users
 
         public async Task<ServiceResponse> LoginUserAsync(LoginUserDto dto)
         {
-            if (!await _user.IsUserEmailUnique(dto.Email))
+            if (!await _user.EmailUnique(dto.Email))
             {
                 return ServiceResponse.Fail("No user with this email adress", null);
             }
@@ -83,7 +83,7 @@ namespace Telegrama.API.Features.Users
             {
                 return ServiceResponse.Fail("Something wrong with getting user...",null);
             }
-            var entity = _mapper.Map<UserDto>(await _user.GetByIdAsync(id.ToString()));
+            var entity = _mapper.Map<UserDto>(await _user.GetByIdAsync(id));
 
             if ( entity == null )
             {

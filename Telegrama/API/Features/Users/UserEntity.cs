@@ -10,6 +10,7 @@ namespace Telegrama.API.Features.Users
         public string Email { get; set; } = string.Empty;
         public string Password {  get; set; } = string.Empty;
         public string UserTag { get; set; } = string.Empty;
+        public string PhoneNumber {  get; set; } = string.Empty;
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
 

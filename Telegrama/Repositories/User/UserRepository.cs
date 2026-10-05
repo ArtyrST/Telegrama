@@ -45,13 +45,13 @@ namespace Telegrama.Repositories.User
             return await _context.Users.ToListAsync();
         }
 
-        public async Task<bool> IsUserEmailUnique(string email)
+        public async Task<bool> EmailUnique(string email)
         {
             return await _context.Users.AnyAsync(u => u.Email.Equals(email));
         }
-        public async Task<bool> IsUserTagUnique(string tag)
+        public async Task<bool> TagUnique(string tag)
         {
-            return await _context.Users.AnyAsync(u => u.UserTag.Equals(tag));
+            return await _context.Users.AnyAsync(u => u.UserTag.Equals(tag.Replace("@", "")));
         }
     }
 }

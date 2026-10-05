@@ -33,11 +33,11 @@ namespace Telegrama.API.Features.Chats
 
 
             var guestEntity = await _user.GetByIdAsync(dto.GuestId);
-            if (guestEntity == null)
+            var creatorEntity = await _user.GetByIdAsync(userId);
+            if (guestEntity == null || guestEntity.Id == creatorEntity.Id)
             {
                 return ServiceResponse.Fail("This user is not exist", null);
             }
-            var creatorEntity = await _user.GetByIdAsync(userId);
             var guest = new ChatMemberEntity
             {
                 ChatProfileName = guestEntity.Name,
@@ -82,7 +82,8 @@ namespace Telegrama.API.Features.Chats
         }
         public async Task<ServiceResponse> CreateChatAsync(string name, ChatsEnum chatType)
         {
-            if (await _chat.IsChatNameExist(name))
+
+            if (await _chat.IsChatNameExist(name) && chatType != ChatsEnum.Direct)
             {
                 return ServiceResponse.Fail("Chat with this name already exist", null);
             }

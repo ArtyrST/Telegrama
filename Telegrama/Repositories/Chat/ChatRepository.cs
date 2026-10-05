@@ -70,7 +70,7 @@ namespace Telegrama.Repositories.Chat
         {
             return await _context.Chats
                 .FirstOrDefaultAsync(chat => chat.ChatType
-                                                    .Equals(ChatsEnum.Private) &&
+                                                    .Equals(ChatsEnum.Direct) &&
                                                     chat.Members.Any(member => member.UserId == User1) &&
                                                     chat.Members.Any(member => member.UserId == User2));
         }
@@ -78,7 +78,7 @@ namespace Telegrama.Repositories.Chat
         {
             return await _context.Chats
                 .AnyAsync(chat => chat.ChatType
-                                                    .Equals(ChatsEnum.Private) &&
+                                                    .Equals(ChatsEnum.Direct) &&
                                                     chat.Members.Any(member => member.UserId == User1) &&
                                                     chat.Members.Any(member => member.UserId == User2));
         }

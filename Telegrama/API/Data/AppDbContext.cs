@@ -86,6 +86,10 @@ namespace Telegrama.API.Data
                 .WithOne(chat => chat.Chat)
                 .HasForeignKey(chat => chat.ChatId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+                chat.HasIndex(x => x.Name)
+                 .IsUnique()
+                 .HasFilter("\"ChatType\" <> 3");
             });
             //chats with messages
             context.Entity<ChatEntity>(chat =>
