@@ -32,8 +32,12 @@ namespace Telegrama.API.Features.Chats
 
 
 
-            var guestEntity = await _user.GetByIdAsync(dto.GuestId.ToString());
-            var creatorEntity = await _user.GetByIdAsync(userId.ToString());
+            var guestEntity = await _user.GetByIdAsync(dto.GuestId);
+            if (guestEntity == null)
+            {
+                return ServiceResponse.Fail("This user is not exist", null);
+            }
+            var creatorEntity = await _user.GetByIdAsync(userId);
             var guest = new ChatMemberEntity
             {
                 ChatProfileName = guestEntity.Name,
@@ -75,6 +79,59 @@ namespace Telegrama.API.Features.Chats
             return ServiceResponse.Success("Success", null);
 
             
+        }
+        public async Task<ServiceResponse> CreateChatAsync(string name, ChatsEnum chatType)
+        {
+            if (await _chat.IsChatNameExist(name))
+            {
+                return ServiceResponse.Fail("Chat with this name already exist", null);
+            }
+            var userId = _httpAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier).ToString();
+            var userName = _httpAccessor.HttpContext.User.FindFirstValue(ClaimTypes.Name);
+
+            bool res = await _chat.AddAsync(new ChatEntity
+            {
+                Name = name,
+                ChatType = chatType,
+                UsersCount = 1,
+                Members = new List<ChatMemberEntity>
+                {
+                    new ChatMemberEntity {UserId = Guid.Parse(userId), ChatProfileName = userName}
+                }
+            });
+            if (!res)
+            {
+                return ServiceResponse.Fail("Something wrong with creating chat", null);
+            }
+            return ServiceResponse.Success("Successfuly create a chat", null);
+
+        }
+
+        public async Task<ServiceResponse> JoinToChatAsync(Guid chatId)
+        {
+            var userId = Guid.Parse(_httpAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var entity = await _user.GetByIdAsync(userId);
+            if (entity == null)
+            {
+                return ServiceResponse.Fail("This user not found(((", null);
+            }
+            if (await _chat.IsChatExist(chatId))
+            {
+                return ServiceResponse.Fail("This chat not exist", null);
+            }
+            if (!await _chat.IsUserExistInChat(userId, chatId)) return ServiceResponse.Fail("This user already in chat", null);
+            var member = new ChatMemberEntity
+            {
+                ChatProfileName = entity.Name,
+                UserId = entity.Id,
+                Role = ChatRoleEnum.Guest
+            };
+            bool res = await _chat.JoinChatAsync(member, chatId);
+            if (!res)
+            {
+                return ServiceResponse.Fail("Something wrong with joining to chat", null);
+            }
+            return ServiceResponse.Success("Success", null);
         }
     }
 }

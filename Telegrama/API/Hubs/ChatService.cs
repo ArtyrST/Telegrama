@@ -46,19 +46,19 @@ namespace Telegrama.API.Hubs
 
         }
 
-        public async Task<ServiceResponse> JoinToChatAsync(string chatId)
+        public async Task<ServiceResponse> JoinToChatAsync(Guid chatId)
         {
-            var userId = _httpContext.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = Guid.Parse(_httpContext.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier));
             var entity = await _user.GetByIdAsync(userId);
             if (entity == null)
             {
                 return ServiceResponse.Fail("This user not found(((", null);
             }
-            if (!await _chat.IsChatExist(chatId))
+            if (await _chat.IsChatExist(chatId))
             {
                 return ServiceResponse.Fail("This chat not exist", null);
             }
-            if (!await _chat.IsUserExistInChat(chatId, userId)) return ServiceResponse.Fail("This user already in chat", null);
+            if (!await _chat.IsUserExistInChat(userId, chatId)) return ServiceResponse.Fail("This user already in chat", null);
             var member = new ChatMemberEntity
             {
                 ChatProfileName = entity.Name,

@@ -25,27 +25,21 @@ namespace Telegrama.Repositories.Chat
         {
             return await _context.Chats.AnyAsync(chat => chat.Name == name);
         }
-        public async Task<bool> IsChatExist(string id)
+        public async Task<bool> IsChatExist(Guid id)
         {
-            return await _context.Chats.AnyAsync(chat => chat.Id.ToString() == id);
+            return await _context.Chats.AnyAsync(chat => chat.Id == id);
         }
         public async Task<ChatEntity> FindChatByIdAsync(string id)
         {
             return await _context.Chats.FirstOrDefaultAsync(chats => chats.Id.ToString() == id);
         }
-        public async Task<bool> IsUserExistInChat(string memberId, string chatId)
+        public async Task<bool> IsUserExistInChat(Guid userId, Guid chatId)
         {
-            var chat = await _context.Chats.FirstOrDefaultAsync(chat => chat.Id.ToString() == chatId);
-            var user = await _context.ChatMembersProfiles.FirstOrDefaultAsync(member => member.Id.ToString() == memberId);
-            if (chat.Members.Any(member => member.Id == user.Id))
-            {
-                return false;
-            }
-            return true;
+            return await _context.ChatMembersProfiles.AnyAsync(member => member.UserId == userId && member.ChatId == chatId);
         }
-        public async Task<bool> JoinChatAsync(ChatMemberEntity member, string chatId)
+        public async Task<bool> JoinChatAsync(ChatMemberEntity member, Guid chatId)
         {
-            var chat = await _context.Chats.FirstOrDefaultAsync(chat => chat.Id.ToString() == chatId);
+            var chat = await _context.Chats.FirstOrDefaultAsync(chat => chat.Id == chatId);
             if (chat == null) return false;
             if (chat.ChatType != ChatsEnum.Public) return false;
             member.ChatId = chat.Id;

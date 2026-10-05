@@ -6,7 +6,7 @@ namespace Telegrama.Repositories.User
 {
     public interface IUserRepositoty
     {
-        public Task<UserEntity> GetByIdAsync(string id);
+        public Task<UserEntity> GetByIdAsync(Guid id);
         public Task<UserEntity> GetByEmailAsync(string email);
         public Task<UserEntity> GetByTagAsync(string tag);
         public Task<bool> AddAsync(UserEntity user);
