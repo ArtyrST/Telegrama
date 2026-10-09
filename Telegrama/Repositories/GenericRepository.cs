@@ -1,7 +1,8 @@
-﻿using AlaBackEnd.DAL.Entity.BaseEntity;
+﻿
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using Telegrama.API.Data;
+using Telegrama.API.Features;
 
 namespace AlaBackEnd.DAL.Repositories
 {
@@ -37,7 +38,7 @@ namespace AlaBackEnd.DAL.Repositories
             int res = await _context.SaveChangesAsync();
             return res != 0;
         }
-        public async Task<bool> DeleteIdAsync(int id)
+        public async Task<bool> DeleteIdAsync(Guid id)
         {
             var entity = await GetByIdAsync(id);
             if (entity != null)
@@ -61,7 +62,7 @@ namespace AlaBackEnd.DAL.Repositories
             return res != 0;
         }
 
-        public async Task<TEntity?> GetByIdAsync(int id)
+        public async Task<TEntity?> GetByIdAsync(Guid id)
         {
             return await _context.Set<TEntity>().
                 FirstOrDefaultAsync(e => e.Id == id);

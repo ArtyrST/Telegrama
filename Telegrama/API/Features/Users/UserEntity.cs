@@ -3,7 +3,7 @@ using Telegrama.API.Features.Messages;
 
 namespace Telegrama.API.Features.Users
 {
-    public class UserEntity
+    public class UserEntity : IBaseEntity
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;

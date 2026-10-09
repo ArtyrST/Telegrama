@@ -35,7 +35,7 @@ namespace Telegrama.API.Features.Chats
         public async Task SendToRoom(string chatId, string message)
         {
             Guid userId = Context.User!.GetUserId();
-            //if (_chatRepository.)
+            
             var entity = new MessageEntity
             {
                 ChatId = Guid.Parse(chatId),

@@ -89,7 +89,7 @@ namespace Telegrama.API.Features.Chats
                 return ServiceResponse.Fail("Chat with this name already exist", null);
             }
             var userId = _httpAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!.ToString();
-            var userName = _httpAccessor.HttpContext.User.FindFirstValue(ClaimTypes.Name);
+            var userName = _httpAccessor.HttpContext.User.FindFirstValue("UserName");
 
             bool res = await _chat.AddAsync(new ChatEntity
             {
@@ -117,11 +117,11 @@ namespace Telegrama.API.Features.Chats
             {
                 return ServiceResponse.Fail("This user not found(((", null);
             }
-            if (await _chat.IsChatExist(chatId))
+            if (!await _chat.IsChatExist(chatId))
             {
                 return ServiceResponse.Fail("This chat not exist", null);
             }
-            if (!await _chat.IsUserExistInChat(userId, chatId)) return ServiceResponse.Fail("This user already in chat", null);
+            if (await _chat.IsUserExistInChat(userId, chatId)) return ServiceResponse.Fail("This user already in chat", null);
             var member = new ChatMemberEntity
             {
                 ChatProfileName = entity.Name,
@@ -138,7 +138,7 @@ namespace Telegrama.API.Features.Chats
         public async Task<ServiceResponse> GetAllChatsAsync()
         {
             Guid userId = Guid.Parse(_httpAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            var chats = _chat.GetAllByUserAsync(userId);
+            var chats = await _chat.GetAllByUserAsync(userId);
             if (chats == null) return ServiceResponse.Fail("No chats for this user", null);
             return ServiceResponse.Success("Successfuly get all user chats", chats);
 

@@ -6,7 +6,6 @@ using System.Text;
 using Telegrama.API.Data;
 using Telegrama.API.Features.Users;
 using Telegrama.API.Features.Users.Auth;
-using Telegrama.API.Hubs;
 using Telegrama.Repositories.Chat;
 using Telegrama.Repositories.User;
 using Microsoft.OpenApi;

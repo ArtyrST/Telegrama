@@ -1,15 +1,17 @@
 ﻿
+using AlaBackEnd.DAL.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Telegrama.API.Data;
 using Telegrama.API.Features.Users;
 
 namespace Telegrama.Repositories.User
 {
-    public class UserRepository : IUserRepositoty
+    public class UserRepository : GenericRepository<UserEntity>, IUserRepositoty
     {
         private readonly AppDbContext _context;
 
         public UserRepository(AppDbContext context)    
+            :base (context)
         {
             _context = context;
         }

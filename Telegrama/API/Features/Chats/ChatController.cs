@@ -10,8 +10,8 @@ namespace Telegrama.API.Features.Chats
     [Route("api/chats")]
     public class ChatController : ControllerBase
     {
-        private readonly ChatService _chat;
-        public ChatController(ChatService hubService)
+        private readonly IChatService _chat;
+        public ChatController(IChatService hubService)
         {
             _chat = hubService;
         }

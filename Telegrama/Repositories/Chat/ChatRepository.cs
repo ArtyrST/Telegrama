@@ -82,5 +82,10 @@ namespace Telegrama.Repositories.Chat
                                                     chat.Members.Any(member => member.UserId == User1) &&
                                                     chat.Members.Any(member => member.UserId == User2));
         }
+        public async Task<bool> IsMemberInChat(Guid userId, Guid chatId)
+        {
+            return await _context.ChatMembersProfiles
+                .AnyAsync(m => m.UserId == userId && m.ChatId == chatId);
+        }
     }
 }

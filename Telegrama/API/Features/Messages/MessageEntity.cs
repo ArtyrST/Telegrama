@@ -2,7 +2,7 @@
 
 namespace Telegrama.API.Features.Messages
 {
-    public class MessageEntity
+    public class MessageEntity : IBaseEntity
     {
         public Guid Id { get; set; }
         public DateTime Time { get; set; } = DateTime.UtcNow;
