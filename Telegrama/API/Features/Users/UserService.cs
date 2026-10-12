@@ -125,6 +125,37 @@ namespace Telegrama.API.Features.Users
             }
             return ServiceResponse.Success("Success", entity);
         }
+        public async Task<ServiceResponse> GetByTagAsync(string tag)
+        {
+            if (tag.StartsWith("@"))
+            {
+                tag = tag.Replace("@", ""); 
+            }
+            if (string.IsNullOrEmpty(tag))
+            {
+                return ServiceResponse.Fail("The tag is empty", null);
+            }
+            if (tag.StartsWith(' '))
+            {
+                tag = tag.Trim();
+            }
+            Console.WriteLine("--------------------------------------------");
+            Console.WriteLine(tag);
+            var user = await _user.GetByTagAsync(tag);
+            if (user ==  null)
+            {
+                return ServiceResponse.Fail("Failed to get this user", null);
+            }
+            var response = new UserDto
+            {
+                Name = user.Name,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber,
+                UserTag = tag
+            };
+
+            return ServiceResponse.Success("Success", response);
+        }
         
     }
 }
