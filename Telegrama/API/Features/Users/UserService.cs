@@ -24,6 +24,8 @@ namespace Telegrama.API.Features.Users
             {
                 return ServiceResponse.Fail("The form is empty", null);
             }
+            dto.Email = dto.Email.Trim().ToLowerInvariant();
+            dto.UserTag = dto.UserTag.Trim().TrimStart('@').ToLowerInvariant();
             if (await _user.EmailUnique(dto.Email))
             {
                 return ServiceResponse.Fail($"The user with email: {dto.Email}, already create", null);
@@ -32,11 +34,10 @@ namespace Telegrama.API.Features.Users
             {
                 return ServiceResponse.Fail($"The user with tag: {dto.UserTag}, already create", null);
             }
-
+            
             var entity = _mapper.Map<UserEntity>(dto);
             
             entity.UserTag = "@" + entity.UserTag;
-
             var passwordHash = new PasswordHasher<UserEntity>();
             entity.Password = passwordHash.HashPassword(
                 entity,
@@ -49,26 +50,34 @@ namespace Telegrama.API.Features.Users
             {
                 return ServiceResponse.Fail("Something wrong", null);
             }
-            await _user.AddAsync(entity);
-            var response = _mapper.Map<UserDto>(entity);
+            try
+            {
+                bool res = await _user.AddAsync(entity);
+                
+            }
+            catch (Exception ex)
+            {
+                return ServiceResponse.Fail("Something wrong with registration", null);
+            }
+
+                var response = _mapper.Map<UserDto>(entity);
             return ServiceResponse.Success("Success", response);
         }
 
         public async Task<ServiceResponse> LoginUserAsync(LoginUserDto dto)
         {
-            if (!await _user.EmailUnique(dto.Email))
+            var entity = await _user.GetByEmailAsync(dto.Email.Trim().ToLowerInvariant());
+            if (entity == null)
             {
-                return ServiceResponse.Fail("No user with this email adress", null);
+                return ServiceResponse.Fail("Invalid credentials", null);
             }
-
-            var entity = await _user.GetByEmailAsync(dto.Email);
             var result = new PasswordHasher<UserEntity>()
                 .VerifyHashedPassword(
                     entity, entity.Password, dto.Password
                 );
             if (result != PasswordVerificationResult.Success)
             {
-                return ServiceResponse.Fail("Wrong password!", null);
+                return ServiceResponse.Fail("Invalid credentials", null);
             }
 
             var jwt = _jwtService.GenerateToken(entity);

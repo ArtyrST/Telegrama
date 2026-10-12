@@ -5,18 +5,24 @@
 namespace Telegrama.Migrations
 {
     /// <inheritdoc />
-    public partial class DirectKey : Migration
+    public partial class UserTagUniqueIndex : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_UserTag",
+                table: "Users",
+                column: "UserTag",
+                unique: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-
+            migrationBuilder.DropIndex(
+                name: "IX_Users_UserTag",
+                table: "Users");
         }
     }
 }

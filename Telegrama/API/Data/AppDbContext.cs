@@ -27,6 +27,7 @@ namespace Telegrama.API.Data
                 entity.Property(entity => entity.Name).IsRequired(true).HasMaxLength(30);
                 entity.Property(entity => entity.Email).IsRequired(true).HasMaxLength(40);
                 entity.Property(entity => entity.Password).IsRequired(true);
+                entity.HasIndex(entity => entity.UserTag).IsUnique(true);
             });
 
             context.Entity<MessageEntity>(entity =>
@@ -39,6 +40,8 @@ namespace Telegrama.API.Data
                 c.HasKey(c => c.Id);
                 c.Property(c => c.Name).IsRequired(true).HasMaxLength(50);
                 c.Property(c => c.ChatType).IsRequired(true);
+                c.Property(c => c.DirectKey).HasMaxLength(80);
+                c.HasIndex(c => c.DirectKey).IsUnique();
             });
 
             context.Entity<ChatMemberEntity>(cm =>

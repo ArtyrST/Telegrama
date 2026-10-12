@@ -12,8 +12,8 @@ using Telegrama.API.Data;
 namespace Telegrama.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261009083602_DirectKey")]
-    partial class DirectKey
+    [Migration("20261009094801_DirectChatKey")]
+    partial class DirectChatKey
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -34,6 +34,10 @@ namespace Telegrama.Migrations
                     b.Property<int>("ChatType")
                         .HasColumnType("integer");
 
+                    b.Property<string>("DirectKey")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -43,6 +47,9 @@ namespace Telegrama.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DirectKey")
+                        .IsUnique();
 
                     b.HasIndex("Name")
                         .IsUnique()

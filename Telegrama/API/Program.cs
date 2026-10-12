@@ -10,6 +10,7 @@ using Telegrama.Repositories.Chat;
 using Telegrama.Repositories.User;
 using Microsoft.OpenApi;
 using Telegrama.API.Features.Chats;
+using Telegrama.Repositories.Message;
 
 namespace Telegrama.API
 {
@@ -26,6 +27,8 @@ namespace Telegrama.API
             //repository
             builder.Services.AddScoped<IUserRepositoty, UserRepository>();
             builder.Services.AddScoped<IChatRepository, ChatRepository>();
+            builder.Services.AddScoped<IMessageRepository, MessageRepository>();   
+            builder.Services.AddScoped<IChatMemberRepository, ChatMemberRepository>();
 
             //Settings
             builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("AuthSettings"));
