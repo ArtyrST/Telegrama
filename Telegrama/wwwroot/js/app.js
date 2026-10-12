@@ -183,6 +183,7 @@ async function connectSignalR() {
         .build();
 
     state.connection.on("ReceiveMessage", (name, message) => {
+    state.connection.on("ReceiveMessage", (name, message) => {
         addMessage(name, message);
     });
 

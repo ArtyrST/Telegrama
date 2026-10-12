@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.Query;
 using Telegrama.API.Data;
 using Telegrama.API.Features.Chats;
+using Telegrama.API.Features.Chats.Dtos;
 using Telegrama.API.Features.Chats.Enums;
 using Telegrama.API.Features.Users;
 
@@ -14,16 +15,27 @@ namespace Telegrama.Repositories.Chat
         {
             _context = context;
         }
-        public async Task<List<ChatEntity>> GetAllByUserAsync(Guid userId)
+        public async Task<List<ChatDto>> GetAllByUserAsync(Guid userId)
         {
             return await _context.Chats
-                .Where(chat => chat.Members
-                                   .Any(member => member.UserId.Equals(userId)))
-                .ToListAsync();
+            .Where(chat => chat.Members.Any(m => m.UserId == userId))
+            .Select(chat => new ChatDto
+            {
+                Id = chat.Id,
+                ChatType = chat.ChatType,
+                UsersCount = chat.Members.Count,
+                Name = chat.ChatType == ChatsEnum.Direct
+                    ? chat.Members
+                        .Where(m => m.UserId != userId)
+                        .Select(m => m.ChatProfileName)
+                        .FirstOrDefault() ?? "Невідомий користувач"
+                    : chat.Name
+            })
+            .ToListAsync();
         }
         public async Task<bool> IsChatNameExist(string name)
         {
-            return await _context.Chats.AnyAsync(chat => chat.Name == name);
+            return await _context.Chats.AnyAsync(chat => chat.Name == name && chat.ChatType != ChatsEnum.Direct);
         }
         public async Task<bool> IsChatExist(Guid id)
         {
@@ -41,7 +53,7 @@ namespace Telegrama.Repositories.Chat
         {
             var chat = await _context.Chats.FirstOrDefaultAsync(chat => chat.Id == chatId);
             if (chat == null) return false;
-            if (chat.ChatType != ChatsEnum.Public) return false;
+            if (chat.ChatType is not (ChatsEnum.Public or ChatsEnum.OnlyLink)) return false;
             member.ChatId = chat.Id;
             chat.Members.Add(member);
             chat.UsersCount++;

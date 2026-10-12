@@ -1,10 +1,12 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using System.Security.Claims;
 using Telegrama.API.Data;
 using Telegrama.API.Features.Chats.Dtos;
 using Telegrama.API.Features.Chats.Enums;
 using Telegrama.Repositories.Chat;
+using Telegrama.Repositories.Message;
 using Telegrama.Repositories.User;
 
 namespace Telegrama.API.Features.Chats
@@ -15,12 +17,28 @@ namespace Telegrama.API.Features.Chats
         private readonly IHttpContextAccessor _httpAccessor;
         private readonly IUserRepositoty _user;
         private readonly IMapper _mapper;
-        public ChatService(IChatRepository chat, IHttpContextAccessor httpAccessor, IUserRepositoty user, IMapper mapper)
+        private readonly ILogger<ChatService> _logger;
+        private readonly IMessageRepository _messages;
+        public ChatService(IMessageRepository messages, ILogger<ChatService> logger, IChatRepository chat, IHttpContextAccessor httpAccessor, IUserRepositoty user, IMapper mapper)
         {
             _chat = chat;
             _httpAccessor = httpAccessor;
             _user = user;
             _mapper = mapper;
+            _logger = logger;
+            _messages = messages;
+        }
+        private static bool IsDuplicateMembership(DbUpdateException exception)
+        {
+            return exception.GetBaseException() is PostgresException postgresException
+                && postgresException.SqlState == PostgresErrorCodes.UniqueViolation
+                && postgresException.ConstraintName == "IX_ChatMembersProfiles_UserId_ChatId";
+        }
+        private static bool IsChatNameConflict(DbUpdateException ex)
+        {
+            return ex.GetBaseException() is PostgresException pg
+                && pg.SqlState == PostgresErrorCodes.UniqueViolation
+                && pg.ConstraintName == "IX_Chats_Name";
         }
         private static string BuildDirectKey(Guid u1, Guid u2)
         {
@@ -92,41 +110,79 @@ namespace Telegrama.API.Features.Chats
                 }
                 return ServiceResponse.Success("Success", null);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex) when (
+                ex.GetBaseException() is PostgresException pg &&
+                pg.SqlState == PostgresErrorCodes.UniqueViolation &&
+                pg.ConstraintName == "IX_Chats_DirectKey")
             {
                 return ServiceResponse.Fail("This direct already exist", null);
             }
-            
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Failed to create direct chat for {CreatorId} and {GuestId}",
+                    creatorEntity.Id,
+                    guestEntity.Id);
+
+                throw;
+            }
+
         }
         public async Task<ServiceResponse> CreateChatAsync(string name, ChatsEnum chatType)
         {
 
-            if (await _chat.IsChatNameExist(name) || chatType == ChatsEnum.Direct)
+            if (!Enum.IsDefined(chatType)|| chatType == ChatsEnum.Direct)
             {
-                return ServiceResponse.Fail("Chat with this name already exist", null);
+                return ServiceResponse.Fail("You cant create this type of chat", null);
             }
-            if (name.Length > 50 || string.IsNullOrEmpty(name) || name.Length < 3)
-            {
-                return ServiceResponse.Fail("Name is not in good form :(", null);
-            }
-            var userId = _httpAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!.ToString();
-            var userName = _httpAccessor.HttpContext.User.FindFirstValue("UserName");
 
-            bool res = await _chat.AddAsync(new ChatEntity
+            if (string.IsNullOrWhiteSpace(name))
             {
-                Name = name,
-                ChatType = chatType,
-                UsersCount = 1,
-                Members = new List<ChatMemberEntity>
-                {
-                    new ChatMemberEntity {UserId = Guid.Parse(userId), ChatProfileName = userName, Role = ChatRoleEnum.Owner}
-                }
-            });
-            if (!res)
-            {
-                return ServiceResponse.Fail("Something wrong with creating chat", null);
+                return ServiceResponse.Fail("Chat name is required", null);
             }
-            return ServiceResponse.Success("Successfuly create a chat", null);
+            name = name.Trim();
+            if (name.Length > 50 || name.Length < 3)
+                return ServiceResponse.Fail("Chat name must be between 3 and 50 characters", null);
+
+            if (await _chat.IsChatNameExist(name))
+                return ServiceResponse.Fail("Chat with this name already exist", null);
+
+            var userId = _httpAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier)!.ToString();
+            var userName = _httpAccessor.HttpContext?.User.FindFirstValue("UserName");
+
+            try
+            {
+                bool created = await _chat.AddAsync(new ChatEntity
+                {
+                    Name = name,
+                    ChatType = chatType,
+                    UsersCount = 1,
+                    Members = new List<ChatMemberEntity>
+        {
+            new()
+            {
+                UserId = Guid.Parse(userId),
+                ChatProfileName = userName,
+                Role = ChatRoleEnum.Owner
+            }
+        }
+                });
+
+                if (!created)
+                    return ServiceResponse.Fail("Не вдалося створити чат", null);
+
+                return ServiceResponse.Success("Чат успішно створено", null);
+            }
+            catch (DbUpdateException ex) when (IsChatNameConflict(ex))
+            {
+                return ServiceResponse.Fail("Чат із такою назвою вже існує", null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create chat {ChatName}", name);
+                throw;
+            }
 
         }
 
@@ -149,11 +205,23 @@ namespace Telegrama.API.Features.Chats
                 UserId = entity.Id,
                 Role = ChatRoleEnum.Guest
             };
-            bool res = await _chat.JoinChatAsync(member, chatId);
+
+            bool res;
+
+            try
+            {
+                res = await _chat.JoinChatAsync(member, chatId);
+            }
+            catch (DbUpdateException ex) when (IsDuplicateMembership(ex))
+            {
+                return ServiceResponse.Fail("This user already in chat", null);
+            }
+
             if (!res)
             {
                 return ServiceResponse.Fail("Something wrong with joining to chat", null);
             }
+
             return ServiceResponse.Success("Success", null);
         }
         public async Task<ServiceResponse> GetAllChatsAsync()
@@ -171,8 +239,42 @@ namespace Telegrama.API.Features.Chats
                     UsersCount = chat.UsersCount
                 });
             }
-            if (entitys == null) return ServiceResponse.Fail("No chats for this user", null);
             return ServiceResponse.Success("Successfuly get all user chats", entitys);
+
+        }
+
+        public async Task<ServiceResponse> GetMessagesAsync(Guid chatId, int limit)
+        {
+            var userIdClaim = _httpAccessor.HttpContext?
+                .User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdClaim, out var userId))
+            {
+                return ServiceResponse.Fail("User is UnAuthorized", null);
+            }
+            
+            if (!await _chat.IsUserExistInChat(userId, chatId))
+            {
+                return ServiceResponse.Fail("User are not in chat", null);
+            }
+            if (limit <= 0 || limit > 100)
+            {
+                limit = 50;
+            }
+            var messages = await _messages.GetLatestByChatAsync(chatId, limit);
+            
+            List<MessageDto> messagesList = new List<MessageDto>();
+            foreach(var message in messages)
+            {
+                messagesList.Add(new MessageDto
+                {
+                    Id = message.Id,
+                    ChatId = message.ChatId,
+                    MemberName = message.Sender?.ChatProfileName ?? "Profile not found",
+                    Text = message.Message,
+                    SentAt = message.Time
+                });
+            }
+            return ServiceResponse.Success("Success!", messagesList);
 
         }
     }

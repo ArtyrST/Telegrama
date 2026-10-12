@@ -9,6 +9,7 @@ namespace Telegrama.API.Features.Chats
         public Task<ServiceResponse> CreateChatAsync(string name, ChatsEnum chatType);
         public Task<ServiceResponse> JoinToChatAsync(Guid chatId);
         public Task<ServiceResponse> GetAllChatsAsync();
+        public Task<ServiceResponse> GetMessagesAsync(Guid chatId, int limit);
 
     }
 }

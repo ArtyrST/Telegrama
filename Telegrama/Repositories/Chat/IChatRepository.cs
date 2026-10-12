@@ -1,4 +1,5 @@
 ﻿using Telegrama.API.Features.Chats;
+using Telegrama.API.Features.Chats.Dtos;
 
 namespace Telegrama.Repositories.Chat
 {
@@ -7,7 +8,7 @@ namespace Telegrama.Repositories.Chat
         public Task<ChatEntity> GetByIdAsync(Guid chatId);
         public Task<ChatEntity> GetByNameAsync(string name);
         public Task<bool> AddAsync(ChatEntity entity);
-        public Task<List<ChatEntity>> GetAllByUserAsync(Guid userId);
+        public Task<List<ChatDto>> GetAllByUserAsync(Guid userId);
         public Task<bool> IsDirectExist(Guid User1, Guid User2);
         public Task<bool> IsChatNameExist(string name);
         public Task<bool> IsChatExist(Guid id);

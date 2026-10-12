@@ -22,9 +22,9 @@ namespace Telegrama.API.Features.Chats
             return this.GetResult(response);
         }
         [HttpPost("join-chat")]
-        public async Task<IActionResult> JoinToChatAsync(string chatId)
+        public async Task<IActionResult> JoinToChatAsync([FromQuery] Guid chatId)
         {
-            var response = await _chat.JoinToChatAsync(Guid.Parse(chatId));
+            var response = await _chat.JoinToChatAsync(chatId);
             return this.GetResult(response);
         }
         [HttpPost("create-direct")]
@@ -39,5 +39,12 @@ namespace Telegrama.API.Features.Chats
             var response = await _chat.GetAllChatsAsync();
             return this.GetResult(response);
         }
+        [HttpGet("{chatId:guid}/last-messages")]
+        public async Task<IActionResult> GetLastMessagesAsync([FromRoute] Guid chatId, [FromQuery]int limit = 50)
+        {
+            var response = await _chat.GetMessagesAsync(chatId, limit);
+            return this.GetResult(response);
+        }
+
     }
 }

@@ -2,7 +2,10 @@
 using Telegrama.Repositories.User;
 using AutoMapper;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Telegrama.API.Features.Users.Auth;
+using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace Telegrama.API.Features.Users
 {
@@ -11,12 +14,14 @@ namespace Telegrama.API.Features.Users
         private readonly IUserRepositoty _user;
         private readonly IMapper _mapper;
         private readonly IJwtService _jwtService;
+        private readonly ILogger<UserService> _logger;
 
-        public UserService(IUserRepositoty user, IMapper mapper, IJwtService jwtService)
+        public UserService(IUserRepositoty user, IMapper mapper, IJwtService jwtService, ILogger<UserService> logger)
         {
             _user = user;
             _mapper = mapper;
             _jwtService = jwtService;
+            _logger = logger;
         }
         public async Task<ServiceResponse> CreateUserAsync(CreateUserDto dto)
         {
@@ -53,15 +58,35 @@ namespace Telegrama.API.Features.Users
             try
             {
                 bool res = await _user.AddAsync(entity);
+                if (!res)
+                {
+                    return ServiceResponse.Fail("Не вдалось створити обліковий запис", null);
+                }
                 
+            }
+            catch (DbUpdateException ex) when (IsUniqueViolation(ex, "IX_Users_Email"))
+            {
+                return ServiceResponse.Fail("The user with this email already exists", null);
+            }
+            catch (DbUpdateException ex) when (IsUniqueViolation(ex, "IX_Users_UserTag"))
+            {
+                return ServiceResponse.Fail("This user tag is already taken", null);
             }
             catch (Exception ex)
             {
-                return ServiceResponse.Fail("Something wrong with registration", null);
+                _logger.LogError(ex, "Registration failed for email {Email}", dto.Email);
+                throw;
             }
 
                 var response = _mapper.Map<UserDto>(entity);
             return ServiceResponse.Success("Success", response);
+        }
+
+        private static bool IsUniqueViolation(DbUpdateException ex, string indexName)
+        {
+            return ex.GetBaseException() is PostgresException pg
+                && pg.SqlState == PostgresErrorCodes.UniqueViolation
+                && pg.ConstraintName == indexName;
         }
 
         public async Task<ServiceResponse> LoginUserAsync(LoginUserDto dto)
@@ -99,6 +124,37 @@ namespace Telegrama.API.Features.Users
                 return ServiceResponse.Fail("No user with this id", null);
             }
             return ServiceResponse.Success("Success", entity);
+        }
+        public async Task<ServiceResponse> GetByTagAsync(string tag)
+        {
+            if (tag.StartsWith("@"))
+            {
+                tag = tag.Replace("@", ""); 
+            }
+            if (string.IsNullOrEmpty(tag))
+            {
+                return ServiceResponse.Fail("The tag is empty", null);
+            }
+            if (tag.StartsWith(' '))
+            {
+                tag = tag.Trim();
+            }
+            Console.WriteLine("--------------------------------------------");
+            Console.WriteLine(tag);
+            var user = await _user.GetByTagAsync(tag);
+            if (user ==  null)
+            {
+                return ServiceResponse.Fail("Failed to get this user", null);
+            }
+            var response = new UserDto
+            {
+                Name = user.Name,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber,
+                UserTag = tag
+            };
+
+            return ServiceResponse.Success("Success", response);
         }
         
     }

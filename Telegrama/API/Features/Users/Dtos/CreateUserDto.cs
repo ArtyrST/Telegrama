@@ -19,7 +19,7 @@ namespace Telegrama.API.Features.Users.Dtos
         ErrorMessage = "Тег повинен містити від 3 до 20 символів (літери, цифри, _)")]
         public string UserTag {  get; set; } = string.Empty;
         [Required]
-        [RegularExpression(@"[a-zA-Z0-9_]{7,20}$")]
+        [RegularExpression(@"^[a-zA-Z0-9_]{7,20}$")]
         public string Password {  get; set; } = string.Empty;
     }
 }
