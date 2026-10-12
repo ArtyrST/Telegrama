@@ -6,6 +6,7 @@ using Telegrama.API.Data;
 using Telegrama.API.Features.Chats.Dtos;
 using Telegrama.API.Features.Chats.Enums;
 using Telegrama.Repositories.Chat;
+using Telegrama.Repositories.Message;
 using Telegrama.Repositories.User;
 
 namespace Telegrama.API.Features.Chats
@@ -17,13 +18,15 @@ namespace Telegrama.API.Features.Chats
         private readonly IUserRepositoty _user;
         private readonly IMapper _mapper;
         private readonly ILogger<ChatService> _logger;
-        public ChatService(ILogger<ChatService> logger, IChatRepository chat, IHttpContextAccessor httpAccessor, IUserRepositoty user, IMapper mapper)
+        private readonly IMessageRepository _messages;
+        public ChatService(IMessageRepository messages, ILogger<ChatService> logger, IChatRepository chat, IHttpContextAccessor httpAccessor, IUserRepositoty user, IMapper mapper)
         {
             _chat = chat;
             _httpAccessor = httpAccessor;
             _user = user;
             _mapper = mapper;
             _logger = logger;
+            _messages = messages;
         }
         private static bool IsDuplicateMembership(DbUpdateException exception)
         {
@@ -237,6 +240,41 @@ namespace Telegrama.API.Features.Chats
                 });
             }
             return ServiceResponse.Success("Successfuly get all user chats", entitys);
+
+        }
+
+        public async Task<ServiceResponse> GetMessagesAsync(Guid chatId, int limit)
+        {
+            var userIdClaim = _httpAccessor.HttpContext?
+                .User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdClaim, out var userId))
+            {
+                return ServiceResponse.Fail("User is UnAuthorized", null);
+            }
+            
+            if (!await _chat.IsUserExistInChat(userId, chatId))
+            {
+                return ServiceResponse.Fail("User are not in chat", null);
+            }
+            if (limit <= 0 || limit > 100)
+            {
+                limit = 50;
+            }
+            var messages = await _messages.GetLatestByChatAsync(chatId, limit);
+            
+            List<MessageDto> messagesList = new List<MessageDto>();
+            foreach(var message in messages)
+            {
+                messagesList.Add(new MessageDto
+                {
+                    Id = message.Id,
+                    ChatId = message.ChatId,
+                    MemberName = message.Sender?.ChatProfileName ?? "Profile not found",
+                    Text = message.Message,
+                    SentAt = message.Time
+                });
+            }
+            return ServiceResponse.Success("Success!", messagesList);
 
         }
     }

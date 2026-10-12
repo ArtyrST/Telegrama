@@ -39,5 +39,12 @@ namespace Telegrama.API.Features.Chats
             var response = await _chat.GetAllChatsAsync();
             return this.GetResult(response);
         }
+        [HttpGet("{chatId:guid}/last-messages")]
+        public async Task<IActionResult> GetLastMessagesAsync([FromRoute] Guid chatId, [FromQuery]int limit = 50)
+        {
+            var response = await _chat.GetMessagesAsync(chatId, limit);
+            return this.GetResult(response);
+        }
+
     }
 }
