@@ -23,7 +23,7 @@ namespace Telegrama.Repositories.Chat
             {
                 Id = chat.Id,
                 ChatType = chat.ChatType,
-                UsersCount = chat.UsersCount,
+                UsersCount = chat.Members.Count,
                 Name = chat.ChatType == ChatsEnum.Direct
                     ? chat.Members
                         .Where(m => m.UserId != userId)
@@ -35,7 +35,7 @@ namespace Telegrama.Repositories.Chat
         }
         public async Task<bool> IsChatNameExist(string name)
         {
-            return await _context.Chats.AnyAsync(chat => chat.Name == name);
+            return await _context.Chats.AnyAsync(chat => chat.Name == name && chat.ChatType != ChatsEnum.Direct);
         }
         public async Task<bool> IsChatExist(Guid id)
         {

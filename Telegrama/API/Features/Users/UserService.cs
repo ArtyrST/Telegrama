@@ -3,6 +3,7 @@ using Telegrama.Repositories.User;
 using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Telegrama.API.Features.Users.Auth;
+using Microsoft.Extensions.Logging;
 
 namespace Telegrama.API.Features.Users
 {
@@ -11,12 +12,14 @@ namespace Telegrama.API.Features.Users
         private readonly IUserRepositoty _user;
         private readonly IMapper _mapper;
         private readonly IJwtService _jwtService;
+        private readonly ILogger<UserService> _logger;
 
-        public UserService(IUserRepositoty user, IMapper mapper, IJwtService jwtService)
+        public UserService(IUserRepositoty user, IMapper mapper, IJwtService jwtService, ILogger<UserService> logger)
         {
             _user = user;
             _mapper = mapper;
             _jwtService = jwtService;
+            _logger = logger;
         }
         public async Task<ServiceResponse> CreateUserAsync(CreateUserDto dto)
         {
@@ -57,6 +60,7 @@ namespace Telegrama.API.Features.Users
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Registration Fail");
                 return ServiceResponse.Fail("Something wrong with registration", null);
             }
 

@@ -106,6 +106,9 @@ namespace Telegrama.API.Features.Chats
                 return ServiceResponse.Fail("Chat with this name already exist", null);
             }
             if (Enum.IsDefined(chatType)|| chatType == ChatsEnum.Direct)
+            {
+                return ServiceResponse.Fail("You cant create this type of chat", null);
+            }
             if (name.Length > 50 || string.IsNullOrEmpty(name) || name.Length < 3)
             {
                 return ServiceResponse.Fail("Chat type wrong", null);
