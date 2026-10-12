@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using System.Security.Claims;
 using Telegrama.API.Data;
 using Telegrama.API.Features.Chats.Dtos;
@@ -15,12 +16,14 @@ namespace Telegrama.API.Features.Chats
         private readonly IHttpContextAccessor _httpAccessor;
         private readonly IUserRepositoty _user;
         private readonly IMapper _mapper;
-        public ChatService(IChatRepository chat, IHttpContextAccessor httpAccessor, IUserRepositoty user, IMapper mapper)
+        private readonly ILogger<ChatService> _logger;
+        public ChatService(ILogger<ChatService> logger, IChatRepository chat, IHttpContextAccessor httpAccessor, IUserRepositoty user, IMapper mapper)
         {
             _chat = chat;
             _httpAccessor = httpAccessor;
             _user = user;
             _mapper = mapper;
+            _logger = logger;
         }
         private static string BuildDirectKey(Guid u1, Guid u2)
         {
@@ -92,11 +95,24 @@ namespace Telegrama.API.Features.Chats
                 }
                 return ServiceResponse.Success("Success", null);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex) when (
+                ex.GetBaseException() is PostgresException pg &&
+                pg.SqlState == PostgresErrorCodes.UniqueViolation &&
+                pg.ConstraintName == "IX_Chats_DirectKey")
             {
                 return ServiceResponse.Fail("This direct already exist", null);
             }
-            
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Failed to create direct chat for {CreatorId} and {GuestId}",
+                    creatorEntity.Id,
+                    guestEntity.Id);
+
+                return ServiceResponse.Fail("Something wrong with creating chat", null);
+            }
+
         }
         public async Task<ServiceResponse> CreateChatAsync(string name, ChatsEnum chatType)
         {
