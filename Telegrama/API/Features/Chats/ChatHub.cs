@@ -40,9 +40,14 @@ namespace Telegrama.API.Features.Chats
         public async Task SendToRoom(Guid chatId, string message)
         {
             Guid userId = Context.User!.GetUserId();
-            if (string.IsNullOrEmpty(message) || message.Length > 2000)
+            if (string.IsNullOrWhiteSpace(message))
             {
                 throw new HubException("Message is empty"); 
+            }
+            message = message.Trim();
+            if (message.Length > 2000)
+            {
+                throw new HubException("Message is too long");
             }
             var member = await _member.GetByUserChat(chatId, userId);
             if (member == null)
