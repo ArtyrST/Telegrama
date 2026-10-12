@@ -31,6 +31,10 @@ namespace Telegrama.Migrations
                     b.Property<int>("ChatType")
                         .HasColumnType("integer");
 
+                    b.Property<string>("DirectKey")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -40,6 +44,9 @@ namespace Telegrama.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DirectKey")
+                        .IsUnique();
 
                     b.HasIndex("Name")
                         .IsUnique()
@@ -143,6 +150,9 @@ namespace Telegrama.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserTag")
+                        .IsUnique();
 
                     b.ToTable("Users");
                 });

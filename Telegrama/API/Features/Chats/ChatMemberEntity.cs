@@ -2,9 +2,9 @@
 using Telegrama.API.Features.Messages;
 using Telegrama.API.Features.Users;
 
-namespace Telegrama.API.Features.Chats
+namespace Telegrama.API.Features.Chats 
 {
-    public class ChatMemberEntity
+    public class ChatMemberEntity : IBaseEntity
     {
         public Guid Id {  get; set; }
         public string ChatProfileName { get; set; } = string.Empty;

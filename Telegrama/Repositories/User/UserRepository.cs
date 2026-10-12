@@ -1,8 +1,7 @@
-﻿
-using AlaBackEnd.DAL.Repositories;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Telegrama.API.Data;
 using Telegrama.API.Features.Users;
+using Telegrama.Repositories.GenericRepository;
 
 namespace Telegrama.Repositories.User
 {
@@ -26,7 +25,8 @@ namespace Telegrama.Repositories.User
 
         public async Task<UserEntity> GetByEmailAsync(string email)
         {
-            return await _context.Users.FirstOrDefaultAsync(user => user.Email == email);
+            var normilized = email.Trim().ToLowerInvariant();
+            return await _context.Users.FirstOrDefaultAsync(user => user.Email == normilized);
         }
         public async Task<UserEntity> GetByTagAsync(string tag)
         {
@@ -49,11 +49,13 @@ namespace Telegrama.Repositories.User
 
         public async Task<bool> EmailUnique(string email)
         {
-            return await _context.Users.AnyAsync(u => u.Email.Equals(email));
+            var normalized = email.Trim().ToLowerInvariant();
+            return await _context.Users.AnyAsync(u => u.Email.Equals(normalized));
         }
         public async Task<bool> TagUnique(string tag)
         {
-            return await _context.Users.AnyAsync(u => u.UserTag.Equals(tag.Replace("@", "")));
+            var normilized = tag.Trim().TrimStart('@').ToLowerInvariant();
+            return await _context.Users.AnyAsync(u => u.UserTag == normilized);
         }
     }
 }

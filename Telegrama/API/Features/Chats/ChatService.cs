@@ -22,6 +22,12 @@ namespace Telegrama.API.Features.Chats
             _user = user;
             _mapper = mapper;
         }
+        private static string BuildDirectKey(Guid u1, Guid u2)
+        {
+            string x = u1.ToString();
+            string y = u2.ToString();
+            return string.CompareOrdinal(x, y) > 0 ? $"{x}_{y}" : $"{y}_{x}";
+        }
 
         public async Task<ServiceResponse> CreateDirectAsync(CreateDirectDto dto)
         {
@@ -35,6 +41,10 @@ namespace Telegrama.API.Features.Chats
 
             var guestEntity = await _user.GetByIdAsync(dto.GuestId);
             var creatorEntity = await _user.GetByIdAsync(userId);
+            if (creatorEntity == null || guestEntity == null)
+            {
+                return ServiceResponse.Fail("Not find this users", null);
+            }
             if (guestEntity == null || guestEntity.Id == creatorEntity.Id)
             {
                 return ServiceResponse.Fail("This user is not exist", null);
@@ -42,14 +52,14 @@ namespace Telegrama.API.Features.Chats
             var guest = new ChatMemberEntity
             {
                 ChatProfileName = guestEntity.Name,
-                Role = ChatRoleEnum.Guest,
+                Role = ChatRoleEnum.Owner,
                 UserId = dto.GuestId
 
             };
             var creator = new ChatMemberEntity
             {
                 ChatProfileName = creatorEntity.Name,
-                Role = ChatRoleEnum.Guest,
+                Role = ChatRoleEnum.Owner,
                 UserId = userId
 
             };
@@ -58,8 +68,10 @@ namespace Telegrama.API.Features.Chats
 
             var chatEntity = new ChatEntity
             {
-                Name = "Заглушка, Feat: придумати як можна відображати один в одного імена",
+                Name = "Заглушка",
                 ChatType = ChatsEnum.Direct,
+                UsersCount = 2,
+                DirectKey = BuildDirectKey(guestEntity.Id, creatorEntity.Id),
                 Members = new List<ChatMemberEntity>
                 {
                     guest,
@@ -71,22 +83,31 @@ namespace Telegrama.API.Features.Chats
             {
                 return ServiceResponse.Fail("This direct already exist", null);
             }
-
-            bool res = await _chat.AddAsync(chatEntity);
-            if (!res)
+            try
             {
-                return ServiceResponse.Fail("Something Wrong with creating chat", null);
+                bool res = await _chat.AddAsync(chatEntity);
+                if (!res)
+                {
+                    return ServiceResponse.Fail("Something Wrong with creating chat", null);
+                }
+                return ServiceResponse.Success("Success", null);
             }
-            return ServiceResponse.Success("Success", null);
-
+            catch (DbUpdateException)
+            {
+                return ServiceResponse.Fail("This direct already exist", null);
+            }
             
         }
         public async Task<ServiceResponse> CreateChatAsync(string name, ChatsEnum chatType)
         {
 
-            if (await _chat.IsChatNameExist(name) && chatType != ChatsEnum.Direct)
+            if (await _chat.IsChatNameExist(name) || chatType == ChatsEnum.Direct)
             {
                 return ServiceResponse.Fail("Chat with this name already exist", null);
+            }
+            if (name.Length > 50 || string.IsNullOrEmpty(name) || name.Length < 3)
+            {
+                return ServiceResponse.Fail("Name is not in good form :(", null);
             }
             var userId = _httpAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!.ToString();
             var userName = _httpAccessor.HttpContext.User.FindFirstValue("UserName");
@@ -98,7 +119,7 @@ namespace Telegrama.API.Features.Chats
                 UsersCount = 1,
                 Members = new List<ChatMemberEntity>
                 {
-                    new ChatMemberEntity {UserId = Guid.Parse(userId), ChatProfileName = userName}
+                    new ChatMemberEntity {UserId = Guid.Parse(userId), ChatProfileName = userName, Role = ChatRoleEnum.Owner}
                 }
             });
             if (!res)
@@ -139,8 +160,19 @@ namespace Telegrama.API.Features.Chats
         {
             Guid userId = Guid.Parse(_httpAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var chats = await _chat.GetAllByUserAsync(userId);
-            if (chats == null) return ServiceResponse.Fail("No chats for this user", null);
-            return ServiceResponse.Success("Successfuly get all user chats", chats);
+            var entitys = new List<ChatDto>();
+            foreach (var chat in chats)
+            {
+                entitys.Add(new ChatDto
+                {
+                    Id = chat.Id,
+                    Name = chat.Name,
+                    ChatType = chat.ChatType,
+                    UsersCount = chat.UsersCount
+                });
+            }
+            if (entitys == null) return ServiceResponse.Fail("No chats for this user", null);
+            return ServiceResponse.Success("Successfuly get all user chats", entitys);
 
         }
     }
