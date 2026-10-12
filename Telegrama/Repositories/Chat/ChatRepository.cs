@@ -53,7 +53,7 @@ namespace Telegrama.Repositories.Chat
         {
             var chat = await _context.Chats.FirstOrDefaultAsync(chat => chat.Id == chatId);
             if (chat == null) return false;
-            if (chat.ChatType != ChatsEnum.Public) return false;
+            if (chat.ChatType is not (ChatsEnum.Public or ChatsEnum.OnlyLink)) return false;
             member.ChatId = chat.Id;
             chat.Members.Add(member);
             chat.UsersCount++;

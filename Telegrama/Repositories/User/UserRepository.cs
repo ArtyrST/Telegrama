@@ -54,8 +54,8 @@ namespace Telegrama.Repositories.User
         }
         public async Task<bool> TagUnique(string tag)
         {
-            var normilized = tag.Trim().TrimStart('@').ToLowerInvariant();
-            return await _context.Users.AnyAsync(u => u.UserTag == normilized);
+            var normalized = "@" + tag.Trim().TrimStart('@').ToLowerInvariant();
+            return await _context.Users.AnyAsync(u => u.UserTag.ToLower() == normalized);
         }
     }
 }

@@ -2,8 +2,10 @@
 using Telegrama.Repositories.User;
 using AutoMapper;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Telegrama.API.Features.Users.Auth;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace Telegrama.API.Features.Users
 {
@@ -62,14 +64,29 @@ namespace Telegrama.API.Features.Users
                 }
                 
             }
+            catch (DbUpdateException ex) when (IsUniqueViolation(ex, "IX_Users_Email"))
+            {
+                return ServiceResponse.Fail("The user with this email already exists", null);
+            }
+            catch (DbUpdateException ex) when (IsUniqueViolation(ex, "IX_Users_UserTag"))
+            {
+                return ServiceResponse.Fail("This user tag is already taken", null);
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Registration Fail");
-                return ServiceResponse.Fail("Something wrong with registration", null);
+                _logger.LogError(ex, "Registration failed for email {Email}", dto.Email);
+                throw;
             }
 
                 var response = _mapper.Map<UserDto>(entity);
             return ServiceResponse.Success("Success", response);
+        }
+
+        private static bool IsUniqueViolation(DbUpdateException ex, string indexName)
+        {
+            return ex.GetBaseException() is PostgresException pg
+                && pg.SqlState == PostgresErrorCodes.UniqueViolation
+                && pg.ConstraintName == indexName;
         }
 
         public async Task<ServiceResponse> LoginUserAsync(LoginUserDto dto)

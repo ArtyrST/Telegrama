@@ -122,25 +122,29 @@ namespace Telegrama.API.Features.Chats
                     creatorEntity.Id,
                     guestEntity.Id);
 
-                return ServiceResponse.Fail("Something wrong with creating chat", null);
+                throw;
             }
 
         }
         public async Task<ServiceResponse> CreateChatAsync(string name, ChatsEnum chatType)
         {
 
-            if (await _chat.IsChatNameExist(name))
-            {
-                return ServiceResponse.Fail("Chat with this name already exist", null);
-            }
             if (!Enum.IsDefined(chatType)|| chatType == ChatsEnum.Direct)
             {
                 return ServiceResponse.Fail("You cant create this type of chat", null);
             }
-            if (name.Length > 50 || string.IsNullOrEmpty(name) || name.Length < 3)
+
+            if (string.IsNullOrWhiteSpace(name))
             {
-                return ServiceResponse.Fail("Chat type wrong", null);
+                return ServiceResponse.Fail("Chat name is required", null);
             }
+            name = name.Trim();
+            if (name.Length > 50 || name.Length < 3)
+                return ServiceResponse.Fail("Chat name must be between 3 and 50 characters", null);
+
+            if (await _chat.IsChatNameExist(name))
+                return ServiceResponse.Fail("Chat with this name already exist", null);
+
             var userId = _httpAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier)!.ToString();
             var userName = _httpAccessor.HttpContext?.User.FindFirstValue("UserName");
 
@@ -174,7 +178,7 @@ namespace Telegrama.API.Features.Chats
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to create chat {ChatName}", name);
-                return ServiceResponse.Fail("Не вдалося створити чат", null);
+                throw;
             }
 
         }
@@ -232,7 +236,6 @@ namespace Telegrama.API.Features.Chats
                     UsersCount = chat.UsersCount
                 });
             }
-            if (entitys == null) return ServiceResponse.Fail("No chats for this user", null);
             return ServiceResponse.Success("Successfuly get all user chats", entitys);
 
         }
