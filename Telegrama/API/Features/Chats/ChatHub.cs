@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens.Experimental;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 using Telegrama.API.Data;
 using Telegrama.API.Extensions;
 using Telegrama.API.Features.Chats.Dtos;
@@ -82,6 +83,26 @@ namespace Telegrama.API.Features.Chats
                 await Groups.AddToGroupAsync(Context.ConnectionId, chat.Id.ToString());
             }
             await base.OnConnectedAsync();
+        }
+        public async Task Typing(Guid chatId)
+        {
+            Guid userId = Context.User!.GetUserId();
+
+            var member = await _member.GetByUserChat(chatId, userId);
+
+            if (member == null)
+            {
+                throw new HubException("User not in this chat");
+            }
+            await Clients.OthersInGroup(chatId.ToString()).SendAsync(
+                    "UserTyping",
+                    new
+                    {
+                        chatId,
+                        userId,
+                        member.ChatProfileName
+                    }
+                );
         }
     }
 }

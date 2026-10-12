@@ -7,5 +7,6 @@ namespace Telegrama.Repositories.Message
 {
     public interface IMessageRepository : IGenericRepository<MessageEntity>
     {
+        public Task<List<MessageEntity>> GetLatestByChatAsync(Guid chatId, int limit);
     }
 }
