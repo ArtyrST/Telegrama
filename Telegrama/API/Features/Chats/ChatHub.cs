@@ -71,7 +71,7 @@ namespace Telegrama.API.Features.Chats
                 SentAt = entity.Time    
             };
 
-            await Clients.Users(chatId.ToString()).SendAsync("ReceiveMessage", dto);
+            await Clients.Group(chatId.ToString()).SendAsync("ReceiveMessage", dto);
         }
         public override async Task OnConnectedAsync()
         {

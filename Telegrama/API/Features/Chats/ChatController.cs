@@ -22,9 +22,9 @@ namespace Telegrama.API.Features.Chats
             return this.GetResult(response);
         }
         [HttpPost("join-chat")]
-        public async Task<IActionResult> JoinToChatAsync(string chatId)
+        public async Task<IActionResult> JoinToChatAsync([FromQuery] Guid chatId)
         {
-            var response = await _chat.JoinToChatAsync(Guid.Parse(chatId));
+            var response = await _chat.JoinToChatAsync(chatId);
             return this.GetResult(response);
         }
         [HttpPost("create-direct")]

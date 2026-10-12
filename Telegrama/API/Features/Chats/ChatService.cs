@@ -101,16 +101,17 @@ namespace Telegrama.API.Features.Chats
         public async Task<ServiceResponse> CreateChatAsync(string name, ChatsEnum chatType)
         {
 
-            if (await _chat.IsChatNameExist(name) || chatType == ChatsEnum.Direct)
+            if (await _chat.IsChatNameExist(name))
             {
                 return ServiceResponse.Fail("Chat with this name already exist", null);
             }
+            if (Enum.IsDefined(chatType)|| chatType == ChatsEnum.Direct)
             if (name.Length > 50 || string.IsNullOrEmpty(name) || name.Length < 3)
             {
-                return ServiceResponse.Fail("Name is not in good form :(", null);
+                return ServiceResponse.Fail("Chat type wrong", null);
             }
-            var userId = _httpAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!.ToString();
-            var userName = _httpAccessor.HttpContext.User.FindFirstValue("UserName");
+            var userId = _httpAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier)!.ToString();
+            var userName = _httpAccessor.HttpContext?.User.FindFirstValue("UserName");
 
             bool res = await _chat.AddAsync(new ChatEntity
             {
