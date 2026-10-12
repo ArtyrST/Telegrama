@@ -25,6 +25,18 @@ namespace Telegrama.API.Features.Chats
             _mapper = mapper;
             _logger = logger;
         }
+        private static bool IsDuplicateMembership(DbUpdateException exception)
+        {
+            return exception.GetBaseException() is PostgresException postgresException
+                && postgresException.SqlState == PostgresErrorCodes.UniqueViolation
+                && postgresException.ConstraintName == "IX_ChatMembersProfiles_UserId_ChatId";
+        }
+        private static bool IsChatNameConflict(DbUpdateException ex)
+        {
+            return ex.GetBaseException() is PostgresException pg
+                && pg.SqlState == PostgresErrorCodes.UniqueViolation
+                && pg.ConstraintName == "IX_Chats_Name";
+        }
         private static string BuildDirectKey(Guid u1, Guid u2)
         {
             string x = u1.ToString();
@@ -121,7 +133,7 @@ namespace Telegrama.API.Features.Chats
             {
                 return ServiceResponse.Fail("Chat with this name already exist", null);
             }
-            if (Enum.IsDefined(chatType)|| chatType == ChatsEnum.Direct)
+            if (!Enum.IsDefined(chatType)|| chatType == ChatsEnum.Direct)
             {
                 return ServiceResponse.Fail("You cant create this type of chat", null);
             }
@@ -132,21 +144,38 @@ namespace Telegrama.API.Features.Chats
             var userId = _httpAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier)!.ToString();
             var userName = _httpAccessor.HttpContext?.User.FindFirstValue("UserName");
 
-            bool res = await _chat.AddAsync(new ChatEntity
+            try
             {
-                Name = name,
-                ChatType = chatType,
-                UsersCount = 1,
-                Members = new List<ChatMemberEntity>
+                bool created = await _chat.AddAsync(new ChatEntity
                 {
-                    new ChatMemberEntity {UserId = Guid.Parse(userId), ChatProfileName = userName, Role = ChatRoleEnum.Owner}
-                }
-            });
-            if (!res)
+                    Name = name,
+                    ChatType = chatType,
+                    UsersCount = 1,
+                    Members = new List<ChatMemberEntity>
+        {
+            new()
             {
-                return ServiceResponse.Fail("Something wrong with creating chat", null);
+                UserId = Guid.Parse(userId),
+                ChatProfileName = userName,
+                Role = ChatRoleEnum.Owner
             }
-            return ServiceResponse.Success("Successfuly create a chat", null);
+        }
+                });
+
+                if (!created)
+                    return ServiceResponse.Fail("Не вдалося створити чат", null);
+
+                return ServiceResponse.Success("Чат успішно створено", null);
+            }
+            catch (DbUpdateException ex) when (IsChatNameConflict(ex))
+            {
+                return ServiceResponse.Fail("Чат із такою назвою вже існує", null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create chat {ChatName}", name);
+                return ServiceResponse.Fail("Не вдалося створити чат", null);
+            }
 
         }
 
@@ -169,11 +198,23 @@ namespace Telegrama.API.Features.Chats
                 UserId = entity.Id,
                 Role = ChatRoleEnum.Guest
             };
-            bool res = await _chat.JoinChatAsync(member, chatId);
+
+            bool res;
+
+            try
+            {
+                res = await _chat.JoinChatAsync(member, chatId);
+            }
+            catch (DbUpdateException ex) when (IsDuplicateMembership(ex))
+            {
+                return ServiceResponse.Fail("This user already in chat", null);
+            }
+
             if (!res)
             {
                 return ServiceResponse.Fail("Something wrong with joining to chat", null);
             }
+
             return ServiceResponse.Success("Success", null);
         }
         public async Task<ServiceResponse> GetAllChatsAsync()

@@ -28,9 +28,9 @@ namespace Telegrama.Repositories.User
             var normilized = email.Trim().ToLowerInvariant();
             return await _context.Users.FirstOrDefaultAsync(user => user.Email == normilized);
         }
-        public async Task<UserEntity> GetByTagAsync(string tag)
+        public async Task<UserEntity?> GetByTagAsync(string tag)
         {
-            return await _context.Users.FirstOrDefaultAsync(user => user.UserTag.ToLower().Equals(tag.ToLower()));
+            return await _context.Users.FirstOrDefaultAsync(user => user.UserTag.ToLower().Equals("@" + tag.ToLower()));
         }
 
         public async Task<bool> AddAsync(UserEntity user)

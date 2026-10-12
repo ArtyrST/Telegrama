@@ -56,6 +56,10 @@ namespace Telegrama.API.Features.Users
             try
             {
                 bool res = await _user.AddAsync(entity);
+                if (!res)
+                {
+                    return ServiceResponse.Fail("Не вдалось створити обліковий запис", null);
+                }
                 
             }
             catch (Exception ex)
