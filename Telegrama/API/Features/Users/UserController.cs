@@ -26,7 +26,7 @@ namespace Telegrama.API.Features.Users
             var user = await _user.LoginUserAsync(dto);
             return this.GetResult(user);
         }
-        
+        [Authorize]
         [HttpGet("by-tag")]
         public async Task<IActionResult> GetByTagAsync([FromQuery] string tag)
         {

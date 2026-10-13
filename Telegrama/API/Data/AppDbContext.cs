@@ -2,6 +2,7 @@
 using Telegrama.API.Features.Chats;
 using Telegrama.API.Features.Messages;
 using Telegrama.API.Features.Users;
+using Telegrama.Migrations;
 
 namespace Telegrama.API.Data
 {
@@ -43,6 +44,13 @@ namespace Telegrama.API.Data
                 c.Property(c => c.ChatType).IsRequired(true);
                 c.Property(c => c.DirectKey).HasMaxLength(80);
                 c.HasIndex(c => c.DirectKey).IsUnique();
+                c.Property(x => x.NormalizedName)
+                    .IsRequired()
+                    .HasMaxLength(50);
+
+                c.HasIndex(x => x.NormalizedName)
+                    .IsUnique()
+                    .HasFilter("\"ChatType\" <> 3");
             });
 
             context.Entity<ChatMemberEntity>(cm =>

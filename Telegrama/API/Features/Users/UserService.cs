@@ -127,31 +127,27 @@ namespace Telegrama.API.Features.Users
         }
         public async Task<ServiceResponse> GetByTagAsync(string tag)
         {
-            if (tag.StartsWith("@"))
+            tag = tag?.Trim() ?? string.Empty;
+
+            if (tag.StartsWith('@'))
             {
-                tag = tag.Replace("@", ""); 
+                tag = tag[1..];
             }
-            if (string.IsNullOrEmpty(tag))
+
+            if (string.IsNullOrWhiteSpace(tag))
             {
                 return ServiceResponse.Fail("The tag is empty", null);
             }
-            if (tag.StartsWith(' '))
-            {
-                tag = tag.Trim();
-            }
-            Console.WriteLine("--------------------------------------------");
-            Console.WriteLine(tag);
             var user = await _user.GetByTagAsync(tag);
             if (user ==  null)
             {
                 return ServiceResponse.Fail("Failed to get this user", null);
             }
-            var response = new UserDto
+            var response = new UserTagSearchDto
             {
+                Id = user.Id,
                 Name = user.Name,
-                Email = user.Email,
-                PhoneNumber = user.PhoneNumber,
-                UserTag = tag
+                UserTag = user.UserTag
             };
 
             return ServiceResponse.Success("Success", response);

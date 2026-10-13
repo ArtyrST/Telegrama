@@ -40,6 +40,11 @@ namespace Telegrama.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<int>("UsersCount")
                         .HasColumnType("integer");
 
@@ -49,6 +54,10 @@ namespace Telegrama.Migrations
                         .IsUnique();
 
                     b.HasIndex("Name")
+                        .IsUnique()
+                        .HasFilter("\"ChatType\" <> 3");
+
+                    b.HasIndex("NormalizedName")
                         .IsUnique()
                         .HasFilter("\"ChatType\" <> 3");
 

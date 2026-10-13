@@ -3,130 +3,106 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Telegrama — API tester</title>
+  <title>Telegrama — тест чату</title>
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
   <div class="app">
     <aside class="sidebar">
-      <div class="brand">
+      <header class="brand">
         <div class="brand-icon">T</div>
-        <div>
-          <h1>Telegrama</h1>
-          <span>API tester</span>
-        </div>
-      </div>
+        <div><h1>Telegrama</h1><span>тестовий клієнт API</span></div>
+      </header>
 
-      <div id="authPanel">
+      <section id="authPanel" class="panel">
         <div class="tabs">
-          <button class="tab active" data-tab="login">Вхід</button>
-          <button class="tab" data-tab="register">Реєстрація</button>
+          <button class="tab active" type="button" data-tab="login">Вхід</button>
+          <button class="tab" type="button" data-tab="register">Реєстрація</button>
         </div>
-
         <form id="loginForm" class="form">
-          <label>Email<input id="loginEmail" type="email" required></label>
-          <label>Пароль<input id="loginPassword" type="password" required></label>
+          <label>Email<input id="loginEmail" type="email" autocomplete="email" required></label>
+          <label>Пароль<input id="loginPassword" type="password" autocomplete="current-password" required></label>
           <button class="primary" type="submit">Увійти</button>
         </form>
-
         <form id="registerForm" class="form hidden">
-          <label>Ім'я<input id="regName" required maxlength="30"></label>
-          <label>Email<input id="regEmail" type="email" required maxlength="40"></label>
-          <label>Телефон<input id="regPhone" required></label>
-          <label>UserTag<input id="regTag" placeholder="artur" required></label>
-          <label>Пароль<input id="regPassword" type="password" required></label>
+          <label>Ім’я<input id="regName" maxlength="30" required></label>
+          <label>Email<input id="regEmail" type="email" maxlength="40" required></label>
+          <label>Телефон<input id="regPhone" type="tel" required></label>
+          <label>Тег<input id="regTag" placeholder="alice або @alice" required></label>
+          <label>Пароль<input id="regPassword" type="password" minlength="7" maxlength="20" required></label>
           <button class="primary" type="submit">Створити акаунт</button>
         </form>
-      </div>
+      </section>
 
-      <div id="userPanel" class="hidden">
+      <section id="userPanel" class="hidden">
         <div class="user-card">
           <div class="avatar" id="userAvatar">?</div>
-          <div class="user-info">
-            <strong id="userName">User</strong>
-            <span id="userTag">@tag</span>
-          </div>
-          <button id="logoutBtn" class="icon-button" title="Вийти">↪</button>
+          <div class="user-info"><strong id="userName">Користувач</strong><span id="userTag"></span></div>
+          <button id="logoutBtn" class="icon-button" type="button" title="Вийти">↪</button>
         </div>
 
-        <button id="testAuthBtn" class="secondary full">Перевірити JWT</button>
+        <div class="section-title"><span>Мої чати</span><button id="refreshChatsBtn" class="icon-button" type="button" title="Оновити">↻</button></div>
+        <div id="chatList" class="chat-list"><div class="empty">Завантаження чатів…</div></div>
 
-        <div class="section-title">
-          <span>Мої чати</span>
-          <button id="refreshChatsBtn" class="icon-button" title="Оновити">↻</button>
-        </div>
+        <details class="tool-panel" open>
+          <summary>Знайти користувача за тегом</summary>
+          <form id="tagSearchForm" class="inline-form">
+            <input id="tagSearch" placeholder="@alice" autocomplete="off" required>
+            <button class="secondary" type="submit">Знайти</button>
+          </form>
+          <div id="tagSearchResult" class="result-box empty">Введи тег, щоб створити direct-чат.</div>
+        </details>
 
-        <div id="chatList" class="chat-list">
-          <div class="empty">Увійди, щоб завантажити чати</div>
-        </div>
+        <details class="tool-panel">
+          <summary>Створити групу</summary>
+          <form id="createChatForm" class="form compact">
+            <label>Назва<input id="chatName" maxlength="50" required></label>
+            <label>Тип групи<select id="chatType"><option value="0">Private</option><option value="1">Public</option><option value="2">OnlyLink</option></select></label>
+            <button class="secondary" type="submit">Створити групу</button>
+          </form>
+        </details>
 
-        <form id="createChatForm" class="form compact">
-          <h3>Створити групу</h3>
-          <label>Назва<input id="chatName" required maxlength="50"></label>
-          <label>Тип
-            <select id="chatType">
-              <option value="0">Private</option>
-              <option value="1">Public</option>
-              <option value="2">OnlyLink</option>
-              <option value="3">Direct</option>
-            </select>
-          </label>
-          <button class="secondary" type="submit">Створити</button>
-        </form>
-      </div>
+        <details class="tool-panel">
+          <summary>Приєднатися до групи</summary>
+          <form id="joinChatForm" class="inline-form">
+            <input id="joinChatId" placeholder="Chat ID (GUID)" required>
+            <button class="secondary" type="submit">Приєднатися</button>
+          </form>
+        </details>
+      </section>
 
-      <div class="status-box">
-        <span id="connectionDot" class="dot offline"></span>
-        <span id="connectionText">Не підключено</span>
-      </div>
+      <div class="status-box"><span id="connectionDot" class="dot offline"></span><span id="connectionText">SignalR: не підключено</span></div>
     </aside>
 
     <main class="main">
       <header class="topbar">
-        <div>
-          <h2 id="screenTitle">Авторизація</h2>
-          <p id="screenSubtitle">Підключення до Telegrama API</p>
-        </div>
-        <button id="clearLogBtn" class="secondary">Очистити лог</button>
+        <div><h2 id="screenTitle">Тест чату</h2><p id="screenSubtitle">Увійди або зареєструй тестового користувача</p></div>
+        <div class="api-status" id="apiStatus">API: очікування</div>
       </header>
 
       <section class="content">
-        <div id="welcome" class="welcome">
+        <section id="welcome" class="welcome">
           <div class="welcome-icon">T</div>
-          <h2>Telegrama API tester</h2>
-          <p>Зареєструй користувача або увійди, щоб перевірити JWT, чати та повідомлення через SignalR.</p>
-        </div>
+          <h2>Перевірка бекенду Telegrama</h2>
+          <p>Увійди двома різними акаунтами у двох вікнах браузера, щоб перевірити обмін повідомленнями в реальному часі.</p>
+        </section>
 
-        <div id="chatView" class="chat-view hidden">
-          <div class="chat-header">
-            <div>
-              <strong id="activeChatName">Оберіть чат</strong>
-              <span id="activeChatId"></span>
-            </div>
-            <button id="joinRoomBtn" class="secondary hidden">Підключити чат</button>
-          </div>
-
-          <div id="messages" class="messages">
-            <div class="empty">Оберіть чат зі списку.</div>
-          </div>
-
+        <section id="chatView" class="chat-view hidden">
+          <header class="chat-header"><div><strong id="activeChatName">Оберіть чат</strong><span id="activeChatId"></span></div><button id="joinRoomBtn" class="secondary hidden" type="button">Під’єднати кімнату</button></header>
+          <div id="messages" class="messages"><div class="empty">Оберіть чат, щоб завантажити історію.</div></div>
           <form id="messageForm" class="message-form">
-            <input id="messageInput" placeholder="Написати повідомлення..." autocomplete="off" disabled>
+            <input id="messageInput" maxlength="2000" placeholder="Написати повідомлення…" autocomplete="off" disabled>
             <button class="primary" type="submit" disabled>Надіслати</button>
           </form>
-        </div>
+        </section>
 
-        <div class="debug">
-          <div class="debug-header">
-            <strong>API log</strong>
-            <span id="apiStatus">—</span>
-          </div>
+        <details class="debug" open>
+          <summary class="debug-header"><strong>Журнал запитів і SignalR</strong><button id="clearLogBtn" class="icon-button" type="button">Очистити</button></summary>
           <pre id="log"></pre>
-        </div>
+        </details>
       </section>
     </main>
   </div>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
   <script src="/js/app.js"></script>
 </body>
