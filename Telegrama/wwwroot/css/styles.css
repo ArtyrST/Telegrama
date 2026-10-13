@@ -13,6 +13,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:14px;padding:4px;border-radius:9px;background:#080d13}
 .tab{padding:9px;border-radius:7px;background:transparent;color:#8b99ab}.tab.active{background:#273446;color:#fff}
 .form{display:flex;flex-direction:column;gap:10px}.form label{display:flex;flex-direction:column;gap:5px;color:#aeb9c8;font-size:12px}
+.verify-copy{margin:0;color:#c1ccdb;font-size:13px;line-height:1.55}.verification-address{margin:0;color:#75aaff;font-size:13px;overflow-wrap:anywhere}.text-button{padding:6px;background:transparent;color:#8da0b8;font-size:12px;text-align:center}.text-button:hover{color:#fff}
 input,select{width:100%;min-width:0;padding:10px;border:1px solid #2a3645;border-radius:8px;outline:0;background:#090e14;color:#e8edf5}
 input:focus,select:focus{border-color:#3478f6}
 .primary,.secondary{padding:10px 13px;border-radius:8px;color:#fff}
@@ -45,3 +46,4 @@ input:focus,select:focus{border-color:#3478f6}
 .message-form{display:flex;gap:8px;padding:12px;border-top:1px solid #26313e}.message-form input{flex:1}.message-form button{white-space:nowrap}
 .debug{border:1px solid #26313e;border-radius:10px;background:#090d12}.debug-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;color:#a2b0c1;font-size:12px}.debug-header .icon-button{font-size:12px}#log{max-height:180px;overflow:auto;margin:0;padding:11px;border-top:1px solid #202a36;color:#9db0c6;font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere}
 @media(max-width:850px){.app{grid-template-columns:1fr}.sidebar{border-right:0;border-bottom:1px solid #252f3c}.chat-list{max-height:150px}.main{min-height:650px}.topbar{padding:14px 17px}.content{padding:14px}.chat-view{max-height:none}.user-result{align-items:flex-start;flex-direction:column}}
+.auth-notice{margin:12px 0 0;padding:10px 12px;border:1px solid #28634f;border-radius:9px;background:#15352d;color:#a9f0d0;font-size:12px;line-height:1.5}.verify-copy[data-kind="success"]{color:#8ce1bb}.verify-copy[data-kind="error"]{color:#ff9a9a}.secondary:disabled{opacity:.65;cursor:not-allowed}

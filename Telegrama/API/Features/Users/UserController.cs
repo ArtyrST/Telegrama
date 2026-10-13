@@ -26,6 +26,18 @@ namespace Telegrama.API.Features.Users
             var user = await _user.LoginUserAsync(dto);
             return this.GetResult(user);
         }
+        [HttpPost("verify-email")]
+        public async Task<IActionResult> VerifyEmailAsync([FromForm] VerifyEmailDto dto)
+        {
+            var response = await _user.VerifyEmailAsync(dto);
+            return this.GetResult(response);
+        }
+        [HttpPost("resend-verification")]
+        public async Task<IActionResult> ResendVerificationAsync([FromForm] ResendVerificationDto dto)
+        {
+            var response = await _user.ResendVerificationAsync(dto);
+            return this.GetResult(response);
+        }
         [Authorize]
         [HttpGet("by-tag")]
         public async Task<IActionResult> GetByTagAsync([FromQuery] string tag)

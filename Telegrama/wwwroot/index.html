@@ -19,6 +19,7 @@
           <button class="tab active" type="button" data-tab="login">Вхід</button>
           <button class="tab" type="button" data-tab="register">Реєстрація</button>
         </div>
+        <p id="authNotice" class="auth-notice hidden" role="status" aria-live="polite"></p>
         <form id="loginForm" class="form">
           <label>Email<input id="loginEmail" type="email" autocomplete="email" required></label>
           <label>Пароль<input id="loginPassword" type="password" autocomplete="current-password" required></label>
@@ -31,6 +32,14 @@
           <label>Тег<input id="regTag" placeholder="alice або @alice" required></label>
           <label>Пароль<input id="regPassword" type="password" minlength="7" maxlength="20" required></label>
           <button class="primary" type="submit">Створити акаунт</button>
+        </form>
+        <form id="verificationForm" class="form hidden">
+          <p id="verificationNotice" class="verify-copy" role="status" aria-live="polite">Введи код із листа, щоб підтвердити адресу.</p>
+          <p class="verification-address"><strong id="verificationEmailLabel"></strong></p>
+          <label>Код підтвердження<input id="verificationCode" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required></label>
+          <button class="primary" type="submit">Підтвердити email</button>
+          <button id="resendVerificationBtn" class="secondary" type="button">Надіслати код ще раз</button>
+          <button id="backToAuthBtn" class="text-button" type="button">Повернутися до входу</button>
         </form>
       </section>
 

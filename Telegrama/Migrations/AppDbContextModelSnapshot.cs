@@ -169,6 +169,43 @@ namespace Telegrama.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("Telegrama.API.Features.Users.Verif.VerifCodeEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsVerified")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("LastSentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("VerifCodes");
+                });
+
             modelBuilder.Entity("Telegrama.API.Features.Chats.ChatMemberEntity", b =>
                 {
                     b.HasOne("Telegrama.API.Features.Chats.ChatEntity", "Chat")
@@ -206,6 +243,17 @@ namespace Telegrama.Migrations
                     b.Navigation("Sender");
                 });
 
+            modelBuilder.Entity("Telegrama.API.Features.Users.Verif.VerifCodeEntity", b =>
+                {
+                    b.HasOne("Telegrama.API.Features.Users.UserEntity", "User")
+                        .WithOne("Code")
+                        .HasForeignKey("Telegrama.API.Features.Users.Verif.VerifCodeEntity", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Telegrama.API.Features.Chats.ChatEntity", b =>
                 {
                     b.Navigation("Members");
@@ -220,6 +268,8 @@ namespace Telegrama.Migrations
 
             modelBuilder.Entity("Telegrama.API.Features.Users.UserEntity", b =>
                 {
+                    b.Navigation("Code");
+
                     b.Navigation("Profiles");
                 });
 #pragma warning restore 612, 618

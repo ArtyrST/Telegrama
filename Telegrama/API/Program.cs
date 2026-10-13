@@ -6,6 +6,7 @@ using System.Text;
 using Telegrama.API.Data;
 using Telegrama.API.Features.Users;
 using Telegrama.API.Features.Users.Auth;
+using Telegrama.API.Features.Users.Verif;
 using Telegrama.Repositories.Chat;
 using Telegrama.Repositories.User;
 using Microsoft.OpenApi;
@@ -23,15 +24,19 @@ namespace Telegrama.API
             builder.Services.AddScoped<UserService>();
             builder.Services.AddScoped<IJwtService, JwtService>();
             builder.Services.AddScoped<IChatService, ChatService>();
+            builder.Services.AddScoped<VerifUserService>();
+            builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 
             //repository
             builder.Services.AddScoped<IUserRepositoty, UserRepository>();
+            builder.Services.AddScoped<IVerifCodeRepository, VerifCodeRepository>();
             builder.Services.AddScoped<IChatRepository, ChatRepository>();
             builder.Services.AddScoped<IMessageRepository, MessageRepository>();   
             builder.Services.AddScoped<IChatMemberRepository, ChatMemberRepository>();
 
             //Settings
             builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("AuthSettings"));
+            builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 
             // Add services to the container.
 

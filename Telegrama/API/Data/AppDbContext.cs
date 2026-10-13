@@ -2,6 +2,7 @@
 using Telegrama.API.Features.Chats;
 using Telegrama.API.Features.Messages;
 using Telegrama.API.Features.Users;
+using Telegrama.API.Features.Users.Verif;
 using Telegrama.Migrations;
 
 namespace Telegrama.API.Data
@@ -17,6 +18,7 @@ namespace Telegrama.API.Data
         public DbSet<MessageEntity> Messages { get; set; }
         public DbSet<ChatEntity> Chats { get; set; } 
         public DbSet<ChatMemberEntity> ChatMembersProfiles { get; set; }
+        public DbSet<VerifCodeEntity> VerifCodes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder context)
         {
@@ -30,6 +32,15 @@ namespace Telegrama.API.Data
                 entity.Property(entity => entity.Password).IsRequired(true);
                 entity.HasIndex(entity => entity.UserTag).IsUnique(true);
                 entity.HasIndex(entity => entity.Email).IsUnique(true);
+            });
+
+            context.Entity<VerifCodeEntity>(code =>
+            {
+
+                code.Property(c => c.CodeHash).IsRequired().HasMaxLength(64);
+                code.Property(c => c.ExpiresAt).IsRequired();
+                code.Property(c => c.LastSentAt);
+                code.Property(c => c.AttemptCount).IsRequired();
             });
 
             context.Entity<MessageEntity>(entity =>
@@ -62,6 +73,15 @@ namespace Telegrama.API.Data
 
 
             //relations
+            //code with user
+            context.Entity<UserEntity>(user =>
+            {
+                user.HasOne(u => u.Code)
+                .WithOne(c => c.User)
+                .HasForeignKey<VerifCodeEntity>(c => c.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            });
+
             //userProfile with messages (one to many)
             context.Entity<ChatMemberEntity>(sender =>
             {

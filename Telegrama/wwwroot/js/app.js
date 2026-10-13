@@ -5,6 +5,7 @@ const state = {
     activeChat: null,
     connection: null
 };
+let resendCooldownTimer = null;
 
 const $ = id => document.getElementById(id);
 
@@ -54,7 +55,9 @@ async function api(url, options = {}) {
 
     if (!response.ok || data?.isSuccess === false) {
         const validation = data?.errors ? Object.values(data.errors).flat().join("; ") : "";
-        throw new Error(data?.message || data?.title || validation || `HTTP ${response.status}`);
+        const error = new Error(data?.message || data?.title || validation || `HTTP ${response.status}`);
+        error.statusCode = response.status;
+        throw error;
     }
     return data;
 }
@@ -122,13 +125,84 @@ async function login(email, password) {
 }
 
 async function register(values) {
-    await api("/api/users/register", {
+    return api("/api/users/register", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: formBody(values)
     });
-    log("Реєстрацію завершено. Виконую вхід…");
-    await login(values.Email, values.Password);
+}
+
+function setVerificationNotice(message, kind = "info") {
+    const notice = $("verificationNotice");
+    notice.textContent = message;
+    notice.dataset.kind = kind;
+}
+
+function startResendCooldown(seconds = 60) {
+    clearInterval(resendCooldownTimer);
+    const button = $("resendVerificationBtn");
+    const endsAt = Date.now() + seconds * 1000;
+    button.disabled = true;
+
+    const update = () => {
+        const remaining = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+        if (remaining === 0) {
+            clearInterval(resendCooldownTimer);
+            resendCooldownTimer = null;
+            button.disabled = false;
+            button.textContent = "Надіслати код ще раз";
+            return;
+        }
+        button.textContent = `Повторне надсилання через ${remaining} с`;
+    };
+
+    update();
+    resendCooldownTimer = setInterval(update, 1000);
+}
+
+function showVerification(email, notice = "Введи код із листа, щоб підтвердити адресу.", cooldownSeconds = 0) {
+    $("loginForm").classList.add("hidden");
+    $("registerForm").classList.add("hidden");
+    $("verificationForm").classList.remove("hidden");
+    document.querySelector(".tabs").classList.add("hidden");
+    $("verificationEmailLabel").textContent = email;
+    $("verificationEmailLabel").dataset.email = email;
+    $("verificationCode").value = "";
+    setVerificationNotice(notice);
+    clearInterval(resendCooldownTimer);
+    resendCooldownTimer = null;
+    $("resendVerificationBtn").disabled = false;
+    $("resendVerificationBtn").textContent = "Надіслати код ще раз";
+    if (cooldownSeconds > 0) startResendCooldown(cooldownSeconds);
+}
+
+function showLoginTab(email = "", notice = "") {
+    clearInterval(resendCooldownTimer);
+    resendCooldownTimer = null;
+    document.querySelector(".tabs").classList.remove("hidden");
+    $("verificationForm").classList.add("hidden");
+    $("registerForm").classList.add("hidden");
+    $("loginForm").classList.remove("hidden");
+    document.querySelectorAll(".tab").forEach(tab => tab.classList.toggle("active", tab.dataset.tab === "login"));
+    $("loginEmail").value = email;
+    $("authNotice").textContent = notice;
+    $("authNotice").classList.toggle("hidden", !notice);
+}
+
+async function verifyEmail(email, code) {
+    await api("/api/users/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formBody({ Email: email, Code: code })
+    });
+}
+
+async function resendVerification(email) {
+    await api("/api/users/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formBody({ Email: email })
+    });
 }
 
 async function loadChats() {
@@ -350,29 +424,76 @@ function escapeHtml(value) {
 }
 
 document.querySelectorAll(".tab").forEach(button => button.addEventListener("click", () => {
+    document.querySelector(".tabs").classList.remove("hidden");
+    $("verificationForm").classList.add("hidden");
     document.querySelectorAll(".tab").forEach(tab => tab.classList.toggle("active", tab === button));
     $("loginForm").classList.toggle("hidden", button.dataset.tab !== "login");
     $("registerForm").classList.toggle("hidden", button.dataset.tab !== "register");
+    $("authNotice").classList.add("hidden");
 }));
 
 $("loginForm").addEventListener("submit", async event => {
     event.preventDefault();
     try { await login($("loginEmail").value, $("loginPassword").value); }
-    catch (error) { showError(error); }
+    catch (error) {
+        if (error.statusCode === 403) {
+            showVerification($("loginEmail").value.trim(), "Цю адресу ще не підтверджено. Введи код із листа або запроси новий.");
+            return;
+        }
+        showError(error);
+    }
 });
 
 $("registerForm").addEventListener("submit", async event => {
     event.preventDefault();
     try {
-        await register({
+        const values = {
             Name: $("regName").value.trim(),
             Email: $("regEmail").value.trim(),
             PhoneNumber: $("regPhone").value.trim(),
             UserTag: $("regTag").value.trim(),
             Password: $("regPassword").value
-        });
-    } catch (error) { showError(error); }
+        };
+        await register(values);
+        showVerification(values.Email, "Код надіслано. Перевір пошту та введи його нижче.", 60);
+    } catch (error) {
+        if (error.statusCode === 503) {
+            const email = $("regEmail").value.trim();
+            showVerification(email, "Акаунт створений, але лист не відправився. Перевір пошту пізніше або звернись до адміністратора.", 60);
+            return;
+        }
+        showError(error);
+    }
 });
+
+$("verificationForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    const email = $("verificationEmailLabel").dataset.email;
+    try {
+        await verifyEmail(email, $("verificationCode").value.trim());
+        showLoginTab(email, "Адресу підтверджено. Тепер увійди з email і паролем.");
+    } catch (error) {
+        setVerificationNotice(error.message, "error");
+    }
+});
+
+$("resendVerificationBtn").addEventListener("click", async () => {
+    const email = $("verificationEmailLabel").dataset.email;
+    try {
+        await resendVerification(email);
+        setVerificationNotice("Якщо акаунт існує та не підтверджений, новий код надіслано. Перевір пошту.", "success");
+        startResendCooldown(60);
+    } catch (error) {
+        if (error.statusCode === 429) {
+            setVerificationNotice("Зачекай перед повторним запитом коду.", "error");
+            startResendCooldown(60);
+            return;
+        }
+        setVerificationNotice(error.message, "error");
+    }
+});
+
+$("backToAuthBtn").addEventListener("click", () => showLoginTab($("verificationEmailLabel").dataset.email));
 
 $("tagSearchForm").addEventListener("submit", async event => {
     event.preventDefault();
