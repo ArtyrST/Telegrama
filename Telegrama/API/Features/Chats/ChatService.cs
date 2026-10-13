@@ -38,7 +38,7 @@ namespace Telegrama.API.Features.Chats
         {
             return ex.GetBaseException() is PostgresException pg
                 && pg.SqlState == PostgresErrorCodes.UniqueViolation
-                && pg.ConstraintName == "IX_Chats_Name";
+                && pg.ConstraintName == "IX_Chats_NormalizedName";
         }
         private static string BuildDirectKey(Guid u1, Guid u2)
         {
@@ -144,8 +144,8 @@ namespace Telegrama.API.Features.Chats
             name = name.Trim();
             if (name.Length > 50 || name.Length < 3)
                 return ServiceResponse.Fail("Chat name must be between 3 and 50 characters", null);
-
-            if (await _chat.IsChatNameExist(name))
+            string NormalizedName = name.Trim().ToUpperInvariant();
+            if (await _chat.IsChatNameExist(NormalizedName))
                 return ServiceResponse.Fail("Chat with this name already exist", null);
 
             var userId = _httpAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier)!.ToString();
@@ -158,6 +158,7 @@ namespace Telegrama.API.Features.Chats
                     Name = name,
                     ChatType = chatType,
                     UsersCount = 1,
+                    NormalizedName = NormalizedName,
                     Members = new List<ChatMemberEntity>
         {
             new()

@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using Telegrama.API.Features.Users.Auth;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using Microsoft.AspNetCore.Http;
+using Telegrama.API.Features.Users.Verif;
 
 namespace Telegrama.API.Features.Users
 {
@@ -15,13 +17,15 @@ namespace Telegrama.API.Features.Users
         private readonly IMapper _mapper;
         private readonly IJwtService _jwtService;
         private readonly ILogger<UserService> _logger;
+        private readonly VerifUserService _verification;
 
-        public UserService(IUserRepositoty user, IMapper mapper, IJwtService jwtService, ILogger<UserService> logger)
+        public UserService(IUserRepositoty user, IMapper mapper, IJwtService jwtService, ILogger<UserService> logger, VerifUserService verification)
         {
             _user = user;
             _mapper = mapper;
             _jwtService = jwtService;
             _logger = logger;
+            _verification = verification;
         }
         public async Task<ServiceResponse> CreateUserAsync(CreateUserDto dto)
         {
@@ -78,8 +82,18 @@ namespace Telegrama.API.Features.Users
                 throw;
             }
 
-                var response = _mapper.Map<UserDto>(entity);
-            return ServiceResponse.Success("Success", response);
+            var emailResult = await _verification.SendCodeAsync(entity);
+            if (emailResult != VerificationEmailSendResult.Sent)
+            {
+                return ServiceResponse.Fail(
+                    "Account created, but the verification email could not be sent. Request a new code.",
+                    null,
+                    emailResult == VerificationEmailSendResult.Cooldown
+                        ? StatusCodes.Status429TooManyRequests
+                        : StatusCodes.Status503ServiceUnavailable);
+            }
+
+            return ServiceResponse.Success("Account created. Verification code sent to your email.", null);
         }
 
         private static bool IsUniqueViolation(DbUpdateException ex, string indexName)
@@ -105,6 +119,11 @@ namespace Telegrama.API.Features.Users
                 return ServiceResponse.Fail("Invalid credentials", null);
             }
 
+            if (entity.Code?.IsVerified != true)
+            {
+                return ServiceResponse.Fail("Verify your email before logging in.", null, StatusCodes.Status403Forbidden);
+            }
+
             var jwt = _jwtService.GenerateToken(entity);
 
             return ServiceResponse.Success("Successful login!", jwt);
@@ -127,34 +146,61 @@ namespace Telegrama.API.Features.Users
         }
         public async Task<ServiceResponse> GetByTagAsync(string tag)
         {
-            if (tag.StartsWith("@"))
+            tag = tag?.Trim() ?? string.Empty;
+
+            if (tag.StartsWith('@'))
             {
-                tag = tag.Replace("@", ""); 
+                tag = tag[1..];
             }
-            if (string.IsNullOrEmpty(tag))
+
+            if (string.IsNullOrWhiteSpace(tag))
             {
                 return ServiceResponse.Fail("The tag is empty", null);
             }
-            if (tag.StartsWith(' '))
-            {
-                tag = tag.Trim();
-            }
-            Console.WriteLine("--------------------------------------------");
-            Console.WriteLine(tag);
             var user = await _user.GetByTagAsync(tag);
             if (user ==  null)
             {
                 return ServiceResponse.Fail("Failed to get this user", null);
             }
-            var response = new UserDto
+            var response = new UserTagSearchDto
             {
+                Id = user.Id,
                 Name = user.Name,
-                Email = user.Email,
-                PhoneNumber = user.PhoneNumber,
-                UserTag = tag
+                UserTag = user.UserTag
             };
 
             return ServiceResponse.Success("Success", response);
+        }
+
+        public async Task<ServiceResponse> VerifyEmailAsync(VerifyEmailDto dto)
+        {
+            return await _verification.VerifyAsync(dto);
+        }
+
+        public async Task<ServiceResponse> ResendVerificationAsync(ResendVerificationDto dto)
+        {
+            var email = dto.Email.Trim().ToLowerInvariant();
+            var user = await _user.GetByEmailAsync(email);
+
+            if (user is not null && user.Code?.IsVerified != true)
+            {
+                var sendResult = await _verification.SendCodeAsync(user);
+                if (sendResult == VerificationEmailSendResult.Cooldown)
+                {
+                    return ServiceResponse.Fail("Wait at least 60 seconds before requesting another code.", null, StatusCodes.Status429TooManyRequests);
+                }
+                if (sendResult == VerificationEmailSendResult.Failed)
+                {
+                    return ServiceResponse.Fail(
+                        "Unable to send verification email. Check the SMTP configuration and try again.",
+                        null,
+                        StatusCodes.Status503ServiceUnavailable);
+                }
+            }
+
+            return ServiceResponse.Success(
+                "If an unverified account exists for this email, a new code has been sent.",
+                null);
         }
         
     }

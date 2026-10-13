@@ -23,10 +23,12 @@ namespace Telegrama.Repositories.User
             return await _context.Users.FirstOrDefaultAsync(user => user.Id == id);
         }
 
-        public async Task<UserEntity> GetByEmailAsync(string email)
+        public async Task<UserEntity?> GetByEmailAsync(string email)
         {
             var normilized = email.Trim().ToLowerInvariant();
-            return await _context.Users.FirstOrDefaultAsync(user => user.Email == normilized);
+            return await _context.Users
+                .Include(user => user.Code)
+                .FirstOrDefaultAsync(user => user.Email == normilized);
         }
         public async Task<UserEntity?> GetByTagAsync(string tag)
         {

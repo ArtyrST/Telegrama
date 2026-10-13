@@ -1,5 +1,6 @@
 ﻿using Telegrama.API.Features.Chats;
 using Telegrama.API.Features.Messages;
+using Telegrama.API.Features.Users.Verif;
 
 namespace Telegrama.API.Features.Users
 {
@@ -18,5 +19,9 @@ namespace Telegrama.API.Features.Users
         //ChatMember
         public ICollection<ChatMemberEntity> Profiles { get; set; } = new List<ChatMemberEntity>();
 
+
+        //code
+        public VerifCodeEntity? Code { get; set; }
+        
     }
 }

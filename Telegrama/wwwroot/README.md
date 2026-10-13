@@ -1,63 +1,38 @@
-# Telegrama Frontend Tester
+# Telegrama backend test client
 
-Це простий frontend без React/Vite/Node. Він працює прямо через ASP.NET Core static files.
+Це простий браузерний клієнт для ручної перевірки API та SignalR. Він не використовує React, Vite чи окремий frontend-сервер: ASP.NET Core віддає файли з `wwwroot` на кореневій адресі сайту.
 
-## Як встановити
+## Запуск
 
-Скопіюй:
+Запусти проєкт `Telegrama` у Visual Studio або виконай з кореня репозиторію:
 
-- `index.html`
-- `css/styles.css`
-- `js/app.js`
+```powershell
+dotnet run --project .\Telegrama\Telegrama.csproj --launch-profile http
+```
 
-у папку:
+Відкрий `http://localhost:5022/`. Для HTTPS профілю адреса — `https://localhost:7198/`.
 
-`Telegrama/Telegrama/wwwroot/`
+Бібліотека SignalR JS завантажується з CDN, тому браузеру потрібен доступ до інтернету. API-виклики й SignalR ідуть на той самий origin, що й сторінка.
 
-Структура:
+## Сценарій перевірки чату
 
-wwwroot/
-├── index.html
-├── css/
-│   └── styles.css
-└── js/
-    └── app.js
+1. Зареєструй або увійди першим користувачем.
+2. Відкрий той самий сайт в іншому профілі браузера або в приватному вікні та увійди другим користувачем.
+3. На першій сесії знайди другого користувача за тегом і створи direct-чат.
+4. В обох сесіях відкрий direct-чат і надішли повідомлення. Нові повідомлення мають з’являтися через SignalR; історія завантажується при відкритті чату.
 
-Після цього запускай ASP.NET API.
+Також сторінка дозволяє створити групу, приєднатися до групи за її GUID, оновити список чатів і переглядати журнал HTTP/SignalR подій.
 
-Відкрий:
+## API, який використовує сторінка
 
-http://localhost:5022/
+- `POST /api/users/register`
+- `POST /api/users/login`
+- `GET /api/users/by-tag?tag=...`
+- `GET /api/chats/my`
+- `POST /api/chats/create`
+- `POST /api/chats/create-direct`
+- `POST /api/chats/join-chat?chatId=...`
+- `GET /api/chats/{chatId}/last-messages?limit=50`
+- SignalR hub `/hubs/chat`: `JoinRoom`, `SendToRoom`, `ReceiveMessage`
 
-або HTTPS:
-
-https://localhost:7198/
-
-## Що вже перевіряє
-
-- POST `/api/users/register`
-- POST `/api/users/login`
-- JWT зберігається у localStorage
-- GET `/api/users/test-get` з Bearer token
-- GET `/api/chats/my`
-- POST `/api/chats/create`
-- SignalR `/hubs/chat`
-- `JoinRoom`
-- `SendToRoom`
-- `ReceiveMessage`
-
-## Важливо
-
-Backend зараз має кілька місць, які фронт не може виправити:
-
-1. `ChatHub` використовує `MessageRepository`, але в `Program.cs` немає його DI registration:
-   `builder.Services.AddScoped<MessageRepository>();`
-
-2. `JoinToChatAsync` у `ChatService` схоже має перевернуті умови:
-   `IsChatExist` та `IsUserExistInChat`.
-
-3. GET історії повідомлень ще немає, тому frontend показує тільки повідомлення, які прийшли через SignalR після підключення.
-
-4. `/api/chats/my` повертає EF entities. Якщо з'явиться JSON cycle exception через navigation properties, краще зробити `ChatDto`.
-
-Цей frontend спеціально зроблений як тестовий стенд, а не як фінальний UI.
+JWT зберігається в `localStorage` браузера для зручності тестування. Кнопка виходу видаляє локально збережений токен.
