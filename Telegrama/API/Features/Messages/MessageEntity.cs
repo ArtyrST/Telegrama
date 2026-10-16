@@ -8,6 +8,7 @@ namespace Telegrama.API.Features.Messages
         public DateTime Time { get; set; } = DateTime.UtcNow;
         public bool IsChanged { get; set; }
         public string Message { get; set; } = string.Empty;
+        public bool IsDeleted { get; set; }
 
 
         //relations

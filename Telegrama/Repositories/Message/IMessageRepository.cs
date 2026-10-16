@@ -12,5 +12,6 @@ namespace Telegrama.Repositories.Message
             Guid memberId,
             DateTime? lastReadAt);
         public Task<DateTime?> GetLatestMessageTimeAsync(Guid chatId);
+        public Task<bool> IsMessageInChatAsync(Guid messageId, Guid ChatId);
     }
 }

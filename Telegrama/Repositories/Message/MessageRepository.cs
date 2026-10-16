@@ -54,5 +54,10 @@ namespace Telegrama.Repositories.Message
                 .FirstOrDefaultAsync();
                 
         }
+        public async Task<bool> IsMessageInChatAsync(Guid messageId, Guid ChatId)
+        {
+            return await _context.Messages
+                .AnyAsync(message => message.Id == messageId && message.ChatId == ChatId);
+        }
     }
 }
