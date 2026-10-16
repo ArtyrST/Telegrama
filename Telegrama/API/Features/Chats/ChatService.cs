@@ -19,7 +19,8 @@ namespace Telegrama.API.Features.Chats
         private readonly IMapper _mapper;
         private readonly ILogger<ChatService> _logger;
         private readonly IMessageRepository _messages;
-        public ChatService(IMessageRepository messages, ILogger<ChatService> logger, IChatRepository chat, IHttpContextAccessor httpAccessor, IUserRepositoty user, IMapper mapper)
+        private readonly IChatMemberRepository _member;
+        public ChatService(IChatMemberRepository member, IMessageRepository messages, ILogger<ChatService> logger, IChatRepository chat, IHttpContextAccessor httpAccessor, IUserRepositoty user, IMapper mapper)
         {
             _chat = chat;
             _httpAccessor = httpAccessor;
@@ -27,6 +28,7 @@ namespace Telegrama.API.Features.Chats
             _mapper = mapper;
             _logger = logger;
             _messages = messages;
+            _member = member;
         }
         private static bool IsDuplicateMembership(DbUpdateException exception)
         {
@@ -228,18 +230,30 @@ namespace Telegrama.API.Features.Chats
         public async Task<ServiceResponse> GetAllChatsAsync()
         {
             Guid userId = Guid.Parse(_httpAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            
+
             var chats = await _chat.GetAllByUserAsync(userId);
+            
             var entitys = new List<ChatDto>();
             foreach (var chat in chats)
             {
+                var member = await _member.GetByUserChat(chat.Id, userId);
+
+                int count = member is null
+                    ? 0
+                    : await _messages.GetUnreadMessagesCountAsync(
+                        chat.Id, member.Id, member.LastRead);
+
                 entitys.Add(new ChatDto
-                {
+                {   
                     Id = chat.Id,
                     Name = chat.Name,
                     ChatType = chat.ChatType,
-                    UsersCount = chat.UsersCount
+                    UsersCount = chat.UsersCount,
+                    UnreadCount =  count
                 });
             }
+            
             return ServiceResponse.Success("Successfuly get all user chats", entitys);
 
         }
@@ -263,6 +277,7 @@ namespace Telegrama.API.Features.Chats
             }
             var messages = await _messages.GetLatestByChatAsync(chatId, limit);
             
+            
             List<MessageDto> messagesList = new List<MessageDto>();
             foreach(var message in messages)
             {
@@ -277,6 +292,27 @@ namespace Telegrama.API.Features.Chats
             }
             return ServiceResponse.Success("Success!", messagesList);
 
+        }
+        public async Task<ServiceResponse> ReadAsync(Guid chatId)
+        {
+            var userId = Guid.Parse(_httpAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier));
+            if (!await _chat.IsUserExistInChat(userId, chatId))
+            {
+                return ServiceResponse.Fail("User is not exist in this chat", null);
+            }       
+            var member = await _member.GetByUserChat(chatId, userId);
+            if (member == null)
+            {
+                return ServiceResponse.Fail("Member not in chat", null);
+            }
+
+            member.LastRead = await _messages.GetLatestMessageTimeAsync(chatId);
+            bool res = await _member.UpdateAsync(member);
+            if (!res)
+            {
+                return ServiceResponse.Fail("Something wrong with saving changes", null);
+            }
+            return ServiceResponse.Success("Success", null);
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Telegrama.API.Data;
 using Telegrama.API.Features.Messages;
+using Telegrama.Migrations;
 using Telegrama.Repositories.GenericRepository;
 
 namespace Telegrama.Repositories.Message
@@ -26,6 +27,32 @@ namespace Telegrama.Repositories.Message
 
             messages.Reverse();
             return messages;
+        }
+        public Task<int> GetUnreadMessagesCountAsync(
+            Guid chatId,
+            Guid memberId,
+            DateTime? lastReadAt)
+        {
+            var query = _context.Messages
+                .Where(message =>
+                    message.ChatId == chatId &&
+                    message.SenderId != memberId);
+
+            if (lastReadAt.HasValue)
+            {
+                query = query.Where(message => message.Time > lastReadAt.Value);
+            }
+
+            return query.CountAsync();
+        }
+        public async Task<DateTime?> GetLatestMessageTimeAsync(Guid chatId)
+        {
+            return await _context.Messages
+                .Where(message => message.ChatId == chatId)
+                .OrderByDescending(messages => messages.Time)
+                .Select(messages => (DateTime?)messages.Time)
+                .FirstOrDefaultAsync();
+                
         }
     }
 }

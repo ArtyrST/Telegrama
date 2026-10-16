@@ -12,6 +12,7 @@ namespace Telegrama.API.Features.Chats
         public int UsersCount { get; set; }
         public ChatsEnum ChatType { get; set; }
         public string? DirectKey { get; set; }
+        
 
         //relations
         //UsersProfiles
