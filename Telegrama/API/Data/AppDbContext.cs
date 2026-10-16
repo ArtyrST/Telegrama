@@ -67,6 +67,7 @@ namespace Telegrama.API.Data
             context.Entity<ChatMemberEntity>(cm =>
             {
                 cm.HasKey(cm => cm.Id);
+                
             });
 
 

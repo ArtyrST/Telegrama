@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Телеграма",
+    "slug": "telegrama-mobile",
+    "scheme": "telegrama",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "Телеграма підключається до локального API для тестування.",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoadsLocalNetworking": true
+        }
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.artyur.telegrama",
+      "usesCleartextTraffic": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a301bcca-0c16-46ce-b235-fc58f159a0c0"
+      }
+    },
+    "owner": "artyrst"
+  }
+}

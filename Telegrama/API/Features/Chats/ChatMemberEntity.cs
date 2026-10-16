@@ -10,6 +10,7 @@ namespace Telegrama.API.Features.Chats
         public string ChatProfileName { get; set; } = string.Empty;
         public ChatRoleEnum Role { get; set; }
         public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? LastRead {  get; set; }
 
         //relations
         //users

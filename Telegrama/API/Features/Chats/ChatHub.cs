@@ -109,5 +109,59 @@ namespace Telegrama.API.Features.Chats
                     }
                 );
         }
+        public async Task EditMessage(Guid chatId, Guid messageId, string newText)
+        {
+            Guid userId = Context.User!.GetUserId();
+            var member = await _member.GetByUserChat(chatId, userId);
+
+            if (member is null)
+            {
+                throw new HubException("User not in this chat");
+            }
+
+            var message = await _messages.GetByIdAsync(messageId);
+
+            if (message == null)
+            {
+                throw new HubException("No find this message");
+            }
+            if (message.ChatId != chatId)
+            {
+                throw new HubException("Message not in chat");
+            }
+            if (message.SenderId != member.Id)
+            {
+                throw new HubException("You can only edit your own messages");
+            }
+            
+            if (string.IsNullOrWhiteSpace(newText))
+            {
+                throw new HubException("text is empty");
+            }
+            newText = newText.Trim();
+            if (newText.Length > 2000)
+            {
+                throw new HubException("This message is too long");
+            }
+            message.Message = newText;
+            message.IsChanged = true;
+            bool res = await _messages.UpdateAsync(message);
+            if (!res)
+            {
+                throw new HubException("Something wrong with updating message");
+            }
+            var dto = new MessageDto
+            {
+                Id = message.Id,
+                ChatId = message.ChatId,
+                MemberName = member.ChatProfileName,
+                Text = message.Message,
+                SentAt = message.Time,
+                IsChanged = true
+            };
+
+            await Clients.Group(chatId.ToString()).SendAsync("MessageEdited", dto);
+
+        }
     }
 }
