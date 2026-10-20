@@ -33,6 +33,7 @@ public sealed class VerifUserService
 
         if (verification?.LastSentAt is { } lastSentAt && lastSentAt > now.AddSeconds(-60))
         {
+            _logger.LogDebug("Verification code resend is in cooldown for user {UserId}", user.Id);
             return VerificationEmailSendResult.Cooldown;
         }
 
@@ -53,6 +54,7 @@ public sealed class VerifUserService
         try
         {
             await _emailSender.SendVerificationCodeAsync(user.Email, user.Name, code);
+            _logger.LogInformation("Verification email sent for user {UserId}", user.Id);
             return VerificationEmailSendResult.Sent;
         }
         catch (Exception ex)
@@ -69,21 +71,25 @@ public sealed class VerifUserService
 
         if (verification is null)
         {
+            _logger.LogDebug("Email verification rejected because no verification record was found");
             return InvalidCodeResponse();
         }
 
         if (verification.IsVerified)
         {
+            _logger.LogDebug("Email verification was already completed for user {UserId}", verification.UserId);
             return ServiceResponse.Success("Email is already verified.", null);
         }
 
         if (verification.IsUsed || verification.ExpiresAt <= DateTimeOffset.UtcNow)
         {
+            _logger.LogInformation("Expired email verification code used for user {UserId}", verification.UserId);
             return ServiceResponse.Fail("Verification code is expired. Request a new code.", null);
         }
 
         if (verification.AttemptCount >= MaxAttempts)
         {
+            _logger.LogWarning("Email verification attempt limit reached for user {UserId}", verification.UserId);
             return ServiceResponse.Fail("Too many attempts. Request a new code.", null, StatusCodes.Status429TooManyRequests);
         }
 
@@ -111,11 +117,14 @@ public sealed class VerifUserService
 
         if (!isValid)
         {
+            _logger.LogWarning("Invalid email verification code for user {UserId}; attempt {AttemptCount}",
+                verification.UserId, verification.AttemptCount);
             return verification.AttemptCount >= MaxAttempts
                 ? ServiceResponse.Fail("Too many attempts. Request a new code.", null, StatusCodes.Status429TooManyRequests)
                 : InvalidCodeResponse();
         }
 
+        _logger.LogInformation("Email verified for user {UserId}", verification.UserId);
         return ServiceResponse.Success("Email verified. You can now log in.", null);
     }
 

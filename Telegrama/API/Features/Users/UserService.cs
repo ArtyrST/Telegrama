@@ -15,17 +15,17 @@ namespace Telegrama.API.Features.Users
     {
         private readonly IUserRepositoty _user;
         private readonly IMapper _mapper;
-        private readonly IJwtService _jwtService;
         private readonly ILogger<UserService> _logger;
         private readonly VerifUserService _verification;
+        private readonly IRefreshTokenService _refreshTokens;
 
-        public UserService(IUserRepositoty user, IMapper mapper, IJwtService jwtService, ILogger<UserService> logger, VerifUserService verification)
+        public UserService(IUserRepositoty user, IMapper mapper, ILogger<UserService> logger, VerifUserService verification, IRefreshTokenService refreshTokens)
         {
             _user = user;
             _mapper = mapper;
-            _jwtService = jwtService;
             _logger = logger;
             _verification = verification;
+            _refreshTokens = refreshTokens;
         }
         public async Task<ServiceResponse> CreateUserAsync(CreateUserDto dto)
         {
@@ -70,18 +70,21 @@ namespace Telegrama.API.Features.Users
             }
             catch (DbUpdateException ex) when (IsUniqueViolation(ex, "IX_Users_Email"))
             {
+                _logger.LogDebug(ex, "Registration rejected because the email is already registered");
                 return ServiceResponse.Fail("The user with this email already exists", null);
             }
             catch (DbUpdateException ex) when (IsUniqueViolation(ex, "IX_Users_UserTag"))
             {
+                _logger.LogDebug(ex, "Registration rejected because the user tag is already taken");
                 return ServiceResponse.Fail("This user tag is already taken", null);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Registration failed for email {Email}", dto.Email);
+                _logger.LogError(ex, "Unexpected registration failure");
                 throw;
             }
 
+            _logger.LogInformation("Account registered for user {UserId}", entity.Id);
             var emailResult = await _verification.SendCodeAsync(entity);
             if (emailResult != VerificationEmailSendResult.Sent)
             {
@@ -108,6 +111,7 @@ namespace Telegrama.API.Features.Users
             var entity = await _user.GetByEmailAsync(dto.Email.Trim().ToLowerInvariant());
             if (entity == null)
             {
+                _logger.LogWarning("Login rejected because credentials were invalid");
                 return ServiceResponse.Fail("Invalid credentials", null);
             }
             var result = new PasswordHasher<UserEntity>()
@@ -116,18 +120,45 @@ namespace Telegrama.API.Features.Users
                 );
             if (result != PasswordVerificationResult.Success)
             {
+                _logger.LogWarning("Login rejected because credentials were invalid");
                 return ServiceResponse.Fail("Invalid credentials", null);
             }
 
             if (entity.Code?.IsVerified != true)
             {
+                _logger.LogInformation("Login blocked until email verification for user {UserId}", entity.Id);
                 return ServiceResponse.Fail("Verify your email before logging in.", null, StatusCodes.Status403Forbidden);
             }
 
-            var jwt = _jwtService.GenerateToken(entity);
+            var tokens = await _refreshTokens.CreateAsync(entity);
+            _logger.LogInformation("User {UserId} logged in", entity.Id);
+            return ServiceResponse.Success("Successful login!", tokens);
 
-            return ServiceResponse.Success("Successful login!", jwt);
+        }
 
+        public async Task<ServiceResponse> RefreshSessionAsync(string? refreshToken)
+        {
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                _logger.LogDebug("Session refresh rejected because the refresh cookie was missing");
+                return ServiceResponse.Fail("Refresh token is missing or invalid.", null, StatusCodes.Status401Unauthorized);
+            }
+
+            var tokens = await _refreshTokens.RotateAsync(refreshToken);
+            if (tokens is null)
+            {
+                _logger.LogDebug("Session refresh rejected because the refresh token was invalid or expired");
+            }
+            return tokens is null
+                ? ServiceResponse.Fail("Session expired. Please log in again.", null, StatusCodes.Status401Unauthorized)
+                : ServiceResponse.Success("Session refreshed.", tokens);
+        }
+
+        public async Task<ServiceResponse> LogoutAsync(string? refreshToken)
+        {
+            await _refreshTokens.RevokeAsync(refreshToken ?? string.Empty);
+            _logger.LogInformation("Logout completed");
+            return ServiceResponse.Success("Logged out.", null);
         }
 
         public async Task<ServiceResponse> GetByIdAsync(Guid id)

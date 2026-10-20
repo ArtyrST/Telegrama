@@ -3,6 +3,7 @@ using Telegrama.API.Features.Chats;
 using Telegrama.API.Features.Messages;
 using Telegrama.API.Features.Users;
 using Telegrama.API.Features.Users.Verif;
+using Telegrama.API.Features.Users.Auth;
 using Telegrama.Migrations;
 
 namespace Telegrama.API.Data
@@ -19,6 +20,7 @@ namespace Telegrama.API.Data
         public DbSet<ChatEntity> Chats { get; set; } 
         public DbSet<ChatMemberEntity> ChatMembersProfiles { get; set; }
         public DbSet<VerifCodeEntity> VerifCodes { get; set; }
+        public DbSet<RefreshTokenEntity> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder context)
         {
@@ -30,6 +32,7 @@ namespace Telegrama.API.Data
                 entity.Property(entity => entity.Name).IsRequired(true).HasMaxLength(30);
                 entity.Property(entity => entity.Email).IsRequired(true).HasMaxLength(40);
                 entity.Property(entity => entity.Password).IsRequired(true);
+                entity.Property(entity => entity.E2eePublicKey).HasMaxLength(512);
                 entity.HasIndex(entity => entity.UserTag).IsUnique(true);
                 entity.HasIndex(entity => entity.Email).IsUnique(true);
             });
@@ -41,6 +44,19 @@ namespace Telegrama.API.Data
                 code.Property(c => c.ExpiresAt).IsRequired();
                 code.Property(c => c.LastSentAt);
                 code.Property(c => c.AttemptCount).IsRequired();
+            });
+
+            context.Entity<RefreshTokenEntity>(token =>
+            {
+                token.HasKey(x => x.Id);
+                token.Property(x => x.TokenHash).IsRequired().HasMaxLength(64);
+                token.Property(x => x.ReplacedByTokenHash).HasMaxLength(64);
+                token.HasIndex(x => x.TokenHash).IsUnique();
+                token.HasIndex(x => new { x.UserId, x.ExpiresAt });
+                token.HasOne(x => x.User)
+                    .WithMany(x => x.RefreshTokens)
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             context.Entity<MessageEntity>(entity =>

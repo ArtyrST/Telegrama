@@ -88,7 +88,7 @@ namespace Telegrama.API.Features.Chats
 
             var chatEntity = new ChatEntity
             {
-                Name = "Заглушка",
+                Name = guest.ChatProfileName + " + " + creator.ChatProfileName + " chat",
                 ChatType = ChatsEnum.Direct,
                 UsersCount = 2,
                 DirectKey = BuildDirectKey(guestEntity.Id, creatorEntity.Id),
@@ -101,6 +101,8 @@ namespace Telegrama.API.Features.Chats
             };
             if (await _chat.IsDirectExist(creatorEntity.Id, guestEntity.Id))
             {
+                _logger.LogDebug("Direct chat creation skipped because it already exists for users {CreatorId} and {GuestId}",
+                    creatorEntity.Id, guestEntity.Id);
                 return ServiceResponse.Fail("This direct already exist", null);
             }
             try
@@ -108,8 +110,12 @@ namespace Telegrama.API.Features.Chats
                 bool res = await _chat.AddAsync(chatEntity);
                 if (!res)
                 {
+                    _logger.LogError("Repository returned false while creating direct chat for users {CreatorId} and {GuestId}",
+                        creatorEntity.Id, guestEntity.Id);
                     return ServiceResponse.Fail("Something Wrong with creating chat", null);
                 }
+                _logger.LogInformation("Direct chat {ChatId} created for users {CreatorId} and {GuestId}",
+                    chatEntity.Id, creatorEntity.Id, guestEntity.Id);
                 return ServiceResponse.Success("Success", null);
             }
             catch (DbUpdateException ex) when (
@@ -117,6 +123,8 @@ namespace Telegrama.API.Features.Chats
                 pg.SqlState == PostgresErrorCodes.UniqueViolation &&
                 pg.ConstraintName == "IX_Chats_DirectKey")
             {
+                _logger.LogDebug(ex, "Concurrent direct-chat creation found an existing chat for users {CreatorId} and {GuestId}",
+                    creatorEntity.Id, guestEntity.Id);
                 return ServiceResponse.Fail("This direct already exist", null);
             }
             catch (DbUpdateException ex)
@@ -162,28 +170,30 @@ namespace Telegrama.API.Features.Chats
                     UsersCount = 1,
                     NormalizedName = NormalizedName,
                     Members = new List<ChatMemberEntity>
-        {
-            new()
-            {
-                UserId = Guid.Parse(userId),
-                ChatProfileName = userName,
-                Role = ChatRoleEnum.Owner
-            }
-        }
+                    {
+                        new()
+                        {
+                            UserId = Guid.Parse(userId),
+                            ChatProfileName = userName,
+                            Role = ChatRoleEnum.Owner
+                        }
+                    }
                 });
 
                 if (!created)
                     return ServiceResponse.Fail("Не вдалося створити чат", null);
 
+                _logger.LogInformation("Group chat created for user {UserId}", userId);
                 return ServiceResponse.Success("Чат успішно створено", null);
             }
             catch (DbUpdateException ex) when (IsChatNameConflict(ex))
             {
+                _logger.LogDebug(ex, "Group-chat creation rejected because the normalized name is already in use");
                 return ServiceResponse.Fail("Чат із такою назвою вже існує", null);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create chat {ChatName}", name);
+                _logger.LogError(ex, "Unexpected failure while creating a group chat");
                 throw;
             }
 
@@ -201,7 +211,11 @@ namespace Telegrama.API.Features.Chats
             {
                 return ServiceResponse.Fail("This chat not exist", null);
             }
-            if (await _chat.IsUserExistInChat(userId, chatId)) return ServiceResponse.Fail("This user already in chat", null);
+            if (await _chat.IsUserExistInChat(userId, chatId))
+            {
+                _logger.LogDebug("User {UserId} tried to join chat {ChatId} they already belong to", userId, chatId);
+                return ServiceResponse.Fail("This user already in chat", null);
+            }
             var member = new ChatMemberEntity
             {
                 ChatProfileName = entity.Name,
@@ -217,14 +231,23 @@ namespace Telegrama.API.Features.Chats
             }
             catch (DbUpdateException ex) when (IsDuplicateMembership(ex))
             {
+                _logger.LogDebug(ex, "Concurrent join attempt found existing membership for user {UserId} in chat {ChatId}",
+                    userId, chatId);
                 return ServiceResponse.Fail("This user already in chat", null);
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(ex, "Database failure while adding user {UserId} to chat {ChatId}", userId, chatId);
+                throw;
             }
 
             if (!res)
             {
+                _logger.LogError("Repository returned false while adding user {UserId} to chat {ChatId}", userId, chatId);
                 return ServiceResponse.Fail("Something wrong with joining to chat", null);
             }
 
+            _logger.LogInformation("User {UserId} joined chat {ChatId}", userId, chatId);
             return ServiceResponse.Success("Success", null);
         }
         public async Task<ServiceResponse> GetAllChatsAsync()
@@ -255,7 +278,7 @@ namespace Telegrama.API.Features.Chats
             }
             
             return ServiceResponse.Success("Successfuly get all user chats", entitys);
-
+            
         }
 
         public async Task<ServiceResponse> GetMessagesAsync(Guid chatId, int limit)
@@ -285,9 +308,12 @@ namespace Telegrama.API.Features.Chats
                 {
                     Id = message.Id,
                     ChatId = message.ChatId,
+                    SenderUserId = message.Sender?.UserId,
                     MemberName = message.Sender?.ChatProfileName ?? "Profile not found",
                     Text = message.Message,
-                    SentAt = message.Time
+                    SentAt = message.Time,
+                    IsChanged = message.IsChanged,
+                    IsDeleted = message.IsDeleted,
                 });
             }
             return ServiceResponse.Success("Success!", messagesList);
@@ -310,8 +336,10 @@ namespace Telegrama.API.Features.Chats
             bool res = await _member.UpdateAsync(member);
             if (!res)
             {
+                _logger.LogError("Failed to save read marker for user {UserId} in chat {ChatId}", userId, chatId);
                 return ServiceResponse.Fail("Something wrong with saving changes", null);
             }
+            _logger.LogDebug("Read marker updated for user {UserId} in chat {ChatId}", userId, chatId);
             return ServiceResponse.Success("Success", null);
         }
     }

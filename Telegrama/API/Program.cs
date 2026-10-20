@@ -12,6 +12,8 @@ using Telegrama.Repositories.User;
 using Microsoft.OpenApi;
 using Telegrama.API.Features.Chats;
 using Telegrama.Repositories.Message;
+using Telegrama.Repositories.E2ee;
+using Telegrama.API.Features.E2ee;
 
 namespace Telegrama.API
 {
@@ -23,6 +25,7 @@ namespace Telegrama.API
             //services
             builder.Services.AddScoped<UserService>();
             builder.Services.AddScoped<IJwtService, JwtService>();
+            builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
             builder.Services.AddScoped<IChatService, ChatService>();
             builder.Services.AddScoped<VerifUserService>();
             builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
@@ -33,6 +36,8 @@ namespace Telegrama.API
             builder.Services.AddScoped<IChatRepository, ChatRepository>();
             builder.Services.AddScoped<IMessageRepository, MessageRepository>();   
             builder.Services.AddScoped<IChatMemberRepository, ChatMemberRepository>();
+            builder.Services.AddScoped<IE2eeRepository, E2eeRepository>();
+            builder.Services.AddScoped<E2eeService>();
 
             //Settings
             builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("AuthSettings"));
