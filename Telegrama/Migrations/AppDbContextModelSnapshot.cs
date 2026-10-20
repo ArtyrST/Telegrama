@@ -179,6 +179,10 @@ namespace Telegrama.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("E2eePublicKey")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(40)

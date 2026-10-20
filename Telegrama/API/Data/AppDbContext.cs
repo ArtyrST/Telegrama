@@ -32,6 +32,7 @@ namespace Telegrama.API.Data
                 entity.Property(entity => entity.Name).IsRequired(true).HasMaxLength(30);
                 entity.Property(entity => entity.Email).IsRequired(true).HasMaxLength(40);
                 entity.Property(entity => entity.Password).IsRequired(true);
+                entity.Property(entity => entity.E2eePublicKey).HasMaxLength(512);
                 entity.HasIndex(entity => entity.UserTag).IsUnique(true);
                 entity.HasIndex(entity => entity.Email).IsUnique(true);
             });

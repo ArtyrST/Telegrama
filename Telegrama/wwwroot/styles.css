@@ -33,10 +33,9 @@ input:focus,select:focus{border-color:#3478f6}
 .inline-form{display:flex;gap:7px;margin-top:10px}.inline-form button{white-space:nowrap}
 .compact{margin-top:12px}.result-box{margin-top:9px;padding:10px;border-radius:8px;background:#141d28;font-size:12px}
 .user-result{display:flex;align-items:center;justify-content:space-between;gap:8px}.user-result div{display:flex;flex-direction:column;min-width:0}.user-result span{color:#91a1b5}.user-result .primary{padding:8px;font-size:12px}.error-text{color:#ff9c9c}
-.status-box{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:12px;border-top:1px solid #252f3c;color:#98a6b8;font-size:12px}
 .dot{width:9px;height:9px;border-radius:50%;background:#c74d56}.dot.online{background:#3dcc78}
 .main{display:flex;flex-direction:column;min-width:0}.topbar{display:flex;align-items:center;justify-content:space-between;min-height:76px;padding:15px 26px;border-bottom:1px solid #252f3c}
-.topbar h2{margin:0 0 4px;font-size:18px}.topbar p{margin:0;color:#8492a6;font-size:12px}.api-status{color:#9eacc0;font-size:12px}
+.topbar h2{margin:0 0 4px;font-size:18px}.topbar p{margin:0;color:#8492a6;font-size:12px}
 .content{display:flex;flex:1;flex-direction:column;gap:16px;min-height:0;padding:22px}
 .welcome{display:flex;flex:1;flex-direction:column;align-items:center;justify-content:center;min-height:300px;text-align:center}.welcome-icon{width:66px;height:66px;margin-bottom:16px;font-size:32px}.welcome h2{margin:0 0 8px}.welcome p{max-width:500px;color:#8694a7;line-height:1.6}
 .chat-view{display:flex;flex:1;flex-direction:column;min-height:340px;max-height:calc(100vh - 245px);overflow:hidden;border:1px solid #26313e;border-radius:13px;background:#111720}
@@ -47,4 +46,64 @@ input:focus,select:focus{border-color:#3478f6}
 .debug{border:1px solid #26313e;border-radius:10px;background:#090d12}.debug-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;color:#a2b0c1;font-size:12px}.debug-header .icon-button{font-size:12px}#log{max-height:180px;overflow:auto;margin:0;padding:11px;border-top:1px solid #202a36;color:#9db0c6;font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere}
 @media(max-width:850px){.app{grid-template-columns:1fr}.sidebar{border-right:0;border-bottom:1px solid #252f3c}.chat-list{max-height:150px}.main{min-height:650px}.topbar{padding:14px 17px}.content{padding:14px}.chat-view{max-height:none}.user-result{align-items:flex-start;flex-direction:column}}
 .auth-notice{margin:12px 0 0;padding:10px 12px;border:1px solid #28634f;border-radius:9px;background:#15352d;color:#a9f0d0;font-size:12px;line-height:1.5}.verify-copy[data-kind="success"]{color:#8ce1bb}.verify-copy[data-kind="error"]{color:#ff9a9a}.secondary:disabled{opacity:.65;cursor:not-allowed}
-.chat-item-title{display:flex;align-items:center;justify-content:space-between;gap:8px}.chat-item-title strong{min-width:0}.unread-badge{flex:none;min-width:21px;padding:2px 6px;border-radius:999px;background:#3478f6;color:#fff;font-size:10px;font-weight:700;text-align:center}.message-deleted .text{color:#8492a6;font-style:italic}.toast{position:fixed;right:22px;bottom:22px;z-index:10;max-width:min(420px,calc(100vw - 32px));padding:13px 16px;border:1px solid #39506b;border-radius:10px;background:#1b2a3c;color:#e8edf5;box-shadow:0 12px 36px #0008;font-size:14px;line-height:1.45}.toast[data-kind="error"]{border-color:#85424a;background:#351d22;color:#ffd4d4}.toast[data-kind="success"]{border-color:#28634f;background:#15352d;color:#b8f1d7}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #75aaff;outline-offset:2px}.message-form input:disabled{opacity:.65}.chat-item-title strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media(max-width:520px){.sidebar{padding:14px}.topbar{align-items:flex-start;gap:12px}.api-status{max-width:110px;text-align:right}.content{padding:10px}.message{max-width:92%}.message-form{padding:9px}.message-form .primary{padding-inline:10px}.toast{right:12px;bottom:12px}}
+.chat-item-title{display:flex;align-items:center;justify-content:space-between;gap:8px}.chat-item-title strong{min-width:0}.unread-badge{flex:none;min-width:21px;padding:2px 6px;border-radius:999px;background:#3478f6;color:#fff;font-size:10px;font-weight:700;text-align:center}.message-deleted .text{color:#8492a6;font-style:italic}.toast{position:fixed;right:22px;bottom:22px;z-index:10;max-width:min(420px,calc(100vw - 32px));padding:13px 16px;border:1px solid #39506b;border-radius:10px;background:#1b2a3c;color:#e8edf5;box-shadow:0 12px 36px #0008;font-size:14px;line-height:1.45}.toast[data-kind="error"]{border-color:#85424a;background:#351d22;color:#ffd4d4}.toast[data-kind="success"]{border-color:#28634f;background:#15352d;color:#b8f1d7}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #75aaff;outline-offset:2px}.message-form input:disabled{opacity:.65}.chat-item-title strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media(max-width:520px){.sidebar{padding:14px}.topbar{align-items:flex-start;gap:12px}.content{padding:10px}.message{max-width:92%}.message-form{padding:9px}.message-form .primary{padding-inline:10px}.toast{right:12px;bottom:12px}}
+
+/* ===== production client additions ===== */
+textarea{width:100%;min-width:0;padding:10px;border:1px solid #2a3645;border-radius:8px;outline:0;background:#090e14;color:#e8edf5;font:inherit;line-height:1.4;resize:none}
+textarea:focus{border-color:#3478f6}
+textarea:focus-visible{outline:2px solid #75aaff;outline-offset:2px}
+.muted{color:#8492a6}
+.clipboard-proxy{position:fixed;top:0;left:0;width:1px;height:1px;opacity:0}
+.noscript{margin:0;padding:16px;background:#351d22;color:#ffd4d4;text-align:center}
+
+/* не показуємо форму входу, поки не відомо, чи є активна сесія (з аварійним показом через 4 с) */
+.booting .app{visibility:hidden;animation:reveal 0s 4s forwards}
+@keyframes reveal{to{visibility:visible}}
+
+.offline-banner{position:sticky;top:0;z-index:20;padding:8px 14px;background:#6b2f15;color:#ffe2d1;font-size:13px;text-align:center}
+
+.connection-pill{display:flex;align-items:center;gap:8px;color:#98a6b8;font-size:12px;white-space:nowrap}
+.dot.pending{background:#e0a030}
+.e2ee-status{font-size:10px;color:#8ce1bb}
+.e2ee-status[data-state="error"]{color:#ff9a9a}
+.e2ee-status[data-state="pending"]{color:#e0a96b}
+.message-security-label{display:block;margin-bottom:4px;color:#e0a96b;font-size:10px;font-weight:700;letter-spacing:.03em}
+
+/* екран чату */
+.chat-view{position:relative;flex:1;min-height:360px;max-height:calc(100vh - 140px)}
+.chat-placeholder{display:none;flex:1;align-items:center;justify-content:center;padding:24px;color:#7d8a9d;text-align:center}
+.no-chat .chat-placeholder{display:flex}
+.no-chat .chat-header,.no-chat .messages-wrap,.no-chat .typing,.no-chat .edit-banner,.no-chat .message-form,.no-chat .composer-meta{display:none!important}
+.messages-wrap{position:relative;display:flex;flex:1;min-height:0}
+.messages{flex:1;min-width:0;scroll-behavior:auto;overscroll-behavior:contain}
+.jump-btn{position:absolute;right:16px;bottom:12px;padding:7px 12px;border-radius:999px;background:#3478f6;color:#fff;font-size:12px;box-shadow:0 6px 18px #0007}
+
+/* повідомлення */
+.message{align-self:flex-start;position:relative;max-width:min(78%,620px);padding:7px 11px 5px}
+.message.mine{align-self:flex-end;border-color:#2f5fb8;background:#1f3f7a}
+.message.grouped{margin-top:-6px}
+.message .sender{margin-bottom:3px}
+.message .meta{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:3px;min-height:18px;color:#7b899b;font-size:10px}
+.message.mine .meta{color:#a9c3f0}
+.message .time,.message .edited{margin:0}
+.message .edited{font-style:italic}
+.message .actions{display:inline-flex;gap:2px;opacity:0;transition:opacity .12s}
+.message:hover .actions,.message:focus-within .actions{opacity:1}
+.msg-action{padding:1px 5px;border-radius:5px;background:transparent;color:inherit;font-size:12px;line-height:1.4}
+.msg-action:hover{background:#ffffff1f}
+.message-deleted{opacity:.75}
+.day-sep{display:flex;justify-content:center;margin:6px 0 2px}
+.day-sep span{padding:3px 11px;border-radius:999px;background:#1a2330;color:#8c9bb0;font-size:11px}
+
+/* індикатор набору, редагування, поле вводу */
+.typing{min-height:20px;padding:0 17px;color:#8fa4c0;font-size:12px;font-style:italic}
+.edit-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 14px;border-top:1px solid #26313e;background:#17202c;color:#aebcd0;font-size:12px}
+.edit-banner em{color:#dce6f4;font-style:normal;overflow-wrap:anywhere}
+.message-form{align-items:flex-end}
+.message-form textarea{flex:1;max-height:140px}
+.composer-meta{display:flex;justify-content:space-between;gap:12px;min-height:18px;padding:0 14px 8px;color:#8492a6;font-size:11px}
+#composerHint{color:#e0a96b}
+
+@media(prefers-reduced-motion:reduce){.message .actions{transition:none}}
+@media(hover:none){.message .actions{opacity:1}}
+@media(max-width:850px){.chat-view{max-height:none;min-height:70vh}.message{max-width:88%}}

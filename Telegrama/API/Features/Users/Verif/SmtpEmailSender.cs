@@ -55,11 +55,6 @@ public sealed class SmtpEmailSender : IEmailSender
             await client.AuthenticateAsync(_settings.Email, _settings.Password);
             await client.SendAsync(message);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send verification email to {Email}", recipient);
-            throw;
-        }
         finally
         {
             if (client.IsConnected)

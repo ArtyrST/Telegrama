@@ -14,6 +14,9 @@ namespace Telegrama.API.Features.Users
         public string UserTag { get; set; } = string.Empty;
         public string PhoneNumber {  get; set; } = string.Empty;
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+        // Public ECDH identity key used by the direct-chat E2EE prototype.
+        // The matching private key must stay in the user's browser.
+        public string? E2eePublicKey { get; set; }
 
 
         //relations

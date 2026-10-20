@@ -12,15 +12,18 @@ namespace Telegrama.API.Features.Users.Auth
         private readonly AppDbContext _db;
         private readonly IJwtService _jwtService;
         private readonly AuthSettings _settings;
+        private readonly ILogger<RefreshTokenService> _logger;
 
         public RefreshTokenService(
             AppDbContext db,
             IJwtService jwtService,
-            IOptions<AuthSettings> settings)
+            IOptions<AuthSettings> settings,
+            ILogger<RefreshTokenService> logger)
         {
             _db = db;
             _jwtService = jwtService;
             _settings = settings.Value;
+            _logger = logger;
         }
 
         public async Task<RefreshTokenGrant> CreateAsync(
@@ -39,6 +42,8 @@ namespace Telegrama.API.Features.Users.Auth
                 ExpiresAt = expiresAt
             });
             await _db.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Refresh-token session created for user {UserId}", user.Id);
 
             return new RefreshTokenGrant(
                 _jwtService.GenerateToken(user),
@@ -61,7 +66,10 @@ namespace Telegrama.API.Features.Users.Auth
                 .SingleOrDefaultAsync(token => token.TokenHash == oldHash, cancellationToken);
 
             if (current is null || current.RevokedAt is not null || current.ExpiresAt <= now)
+            {
+                _logger.LogDebug("Refresh-token rotation rejected because token is invalid or expired");
                 return null;
+            }
 
             var newRawToken = CreateRawToken();
             var newHash = HashToken(newRawToken);
@@ -76,7 +84,12 @@ namespace Telegrama.API.Features.Users.Auth
                     .SetProperty(token => token.RevokedAt, now)
                     .SetProperty(token => token.ReplacedByTokenHash, newHash), cancellationToken);
 
-            if (revoked != 1) return null;
+            if (revoked != 1)
+            {
+                _logger.LogDebug("Concurrent refresh-token rotation lost the single-use update race for user {UserId}",
+                    current.UserId);
+                return null;
+            }
 
             _db.RefreshTokens.Add(new RefreshTokenEntity
             {
@@ -87,6 +100,7 @@ namespace Telegrama.API.Features.Users.Auth
             });
             await _db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            _logger.LogInformation("Refresh token rotated for user {UserId}", current.UserId);
 
             return new RefreshTokenGrant(
                 _jwtService.GenerateToken(current.User),
@@ -102,10 +116,14 @@ namespace Telegrama.API.Features.Users.Auth
 
             var hash = HashToken(refreshToken);
             var now = DateTimeOffset.UtcNow;
-            await _db.RefreshTokens
+            var revoked = await _db.RefreshTokens
                 .Where(token => token.TokenHash == hash && token.RevokedAt == null)
                 .ExecuteUpdateAsync(updates => updates
                     .SetProperty(token => token.RevokedAt, now), cancellationToken);
+            if (revoked > 0)
+            {
+                _logger.LogInformation("Refresh-token session revoked");
+            }
         }
 
         private static string CreateRawToken() =>
