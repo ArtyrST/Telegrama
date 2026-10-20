@@ -23,6 +23,7 @@ namespace Telegrama.API
             //services
             builder.Services.AddScoped<UserService>();
             builder.Services.AddScoped<IJwtService, JwtService>();
+            builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
             builder.Services.AddScoped<IChatService, ChatService>();
             builder.Services.AddScoped<VerifUserService>();
             builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();

@@ -255,7 +255,7 @@ namespace Telegrama.API.Features.Chats
             }
             
             return ServiceResponse.Success("Successfuly get all user chats", entitys);
-
+            
         }
 
         public async Task<ServiceResponse> GetMessagesAsync(Guid chatId, int limit)
@@ -287,7 +287,9 @@ namespace Telegrama.API.Features.Chats
                     ChatId = message.ChatId,
                     MemberName = message.Sender?.ChatProfileName ?? "Profile not found",
                     Text = message.Message,
-                    SentAt = message.Time
+                    SentAt = message.Time,
+                    IsChanged = message.IsChanged,
+                    IsDeleted = message.IsDeleted,
                 });
             }
             return ServiceResponse.Success("Success!", messagesList);

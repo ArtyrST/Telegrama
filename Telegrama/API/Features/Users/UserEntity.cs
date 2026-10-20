@@ -1,6 +1,7 @@
 ﻿using Telegrama.API.Features.Chats;
 using Telegrama.API.Features.Messages;
 using Telegrama.API.Features.Users.Verif;
+using Telegrama.API.Features.Users.Auth;
 
 namespace Telegrama.API.Features.Users
 {
@@ -22,6 +23,7 @@ namespace Telegrama.API.Features.Users
 
         //code
         public VerifCodeEntity? Code { get; set; }
+        public ICollection<RefreshTokenEntity> RefreshTokens { get; set; } = new List<RefreshTokenEntity>();
         
     }
 }

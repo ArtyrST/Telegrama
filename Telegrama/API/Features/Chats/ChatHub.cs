@@ -138,6 +138,10 @@ namespace Telegrama.API.Features.Chats
             {
                 throw new HubException("text is empty");
             }
+            if (message.IsDeleted)
+            {
+                throw new HubException("You cant edit deleted message");
+            }
             newText = newText.Trim();
             if (newText.Length > 2000)
             {
@@ -157,10 +161,60 @@ namespace Telegrama.API.Features.Chats
                 MemberName = member.ChatProfileName,
                 Text = message.Message,
                 SentAt = message.Time,
-                IsChanged = true
+                IsChanged = true,
+                IsDeleted = false
             };
 
             await Clients.Group(chatId.ToString()).SendAsync("MessageEdited", dto);
+
+        }
+        public async Task DeleteMessageAsync(Guid chatId, Guid messageId)
+        {
+            Guid userId = Context.User!.GetUserId();
+            var member = await _member.GetByUserChat(chatId, userId);
+
+            if (member is null)
+            {
+                throw new HubException("User not in this chat");
+            }
+
+            var message = await _messages.GetByIdAsync(messageId);
+            if (message == null)
+            {
+                throw new HubException("No find this message");
+            }
+            if (message.ChatId != chatId)
+            {
+                throw new HubException("Message not in chat");
+            }
+            if (message.SenderId != member.Id)
+            {
+                throw new HubException("You can only delete your own messages");
+            }
+            if (message.IsDeleted)
+            {
+                throw new HubException("You cant delete already deleted message");
+            }
+            message.Message = "";
+            message.IsDeleted = true;
+            bool res = await _messages.UpdateAsync(message);
+            if (!res)
+            {
+                throw new HubException("Something wrong with updating");
+            }
+            var dto = new MessageDto
+            {
+                Id = message.Id,
+                ChatId = message.ChatId,
+                MemberName = member.ChatProfileName,
+                Text = message.Message,
+                SentAt = message.Time,
+                IsChanged = false,
+                IsDeleted = true
+            };
+
+            await Clients.Group(chatId.ToString()).SendAsync("MessageDeleted", dto);
+
 
         }
     }

@@ -15,17 +15,17 @@ namespace Telegrama.API.Features.Users
     {
         private readonly IUserRepositoty _user;
         private readonly IMapper _mapper;
-        private readonly IJwtService _jwtService;
         private readonly ILogger<UserService> _logger;
         private readonly VerifUserService _verification;
+        private readonly IRefreshTokenService _refreshTokens;
 
-        public UserService(IUserRepositoty user, IMapper mapper, IJwtService jwtService, ILogger<UserService> logger, VerifUserService verification)
+        public UserService(IUserRepositoty user, IMapper mapper, ILogger<UserService> logger, VerifUserService verification, IRefreshTokenService refreshTokens)
         {
             _user = user;
             _mapper = mapper;
-            _jwtService = jwtService;
             _logger = logger;
             _verification = verification;
+            _refreshTokens = refreshTokens;
         }
         public async Task<ServiceResponse> CreateUserAsync(CreateUserDto dto)
         {
@@ -124,10 +124,28 @@ namespace Telegrama.API.Features.Users
                 return ServiceResponse.Fail("Verify your email before logging in.", null, StatusCodes.Status403Forbidden);
             }
 
-            var jwt = _jwtService.GenerateToken(entity);
+            var tokens = await _refreshTokens.CreateAsync(entity);
+            return ServiceResponse.Success("Successful login!", tokens);
 
-            return ServiceResponse.Success("Successful login!", jwt);
+        }
 
+        public async Task<ServiceResponse> RefreshSessionAsync(string? refreshToken)
+        {
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                return ServiceResponse.Fail("Refresh token is missing or invalid.", null, StatusCodes.Status401Unauthorized);
+            }
+
+            var tokens = await _refreshTokens.RotateAsync(refreshToken);
+            return tokens is null
+                ? ServiceResponse.Fail("Session expired. Please log in again.", null, StatusCodes.Status401Unauthorized)
+                : ServiceResponse.Success("Session refreshed.", tokens);
+        }
+
+        public async Task<ServiceResponse> LogoutAsync(string? refreshToken)
+        {
+            await _refreshTokens.RevokeAsync(refreshToken ?? string.Empty);
+            return ServiceResponse.Success("Logged out.", null);
         }
 
         public async Task<ServiceResponse> GetByIdAsync(Guid id)

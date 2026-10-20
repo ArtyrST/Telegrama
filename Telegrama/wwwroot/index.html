@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Telegrama — тест чату</title>
+  <meta name="description" content="Telegrama — приватне спілкування в чатах.">
+  <meta name="theme-color" content="#0b1016">
+  <title>Telegrama — чати</title>
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
@@ -11,7 +13,7 @@
     <aside class="sidebar">
       <header class="brand">
         <div class="brand-icon">T</div>
-        <div><h1>Telegrama</h1><span>тестовий клієнт API</span></div>
+        <div><h1>Telegrama</h1><span>ваш простір для спілкування</span></div>
       </header>
 
       <section id="authPanel" class="panel">
@@ -50,7 +52,7 @@
           <button id="logoutBtn" class="icon-button" type="button" title="Вийти">↪</button>
         </div>
 
-        <div class="section-title"><span>Мої чати</span><button id="refreshChatsBtn" class="icon-button" type="button" title="Оновити">↻</button></div>
+        <div class="section-title"><span>Мої чати</span><button id="refreshChatsBtn" class="icon-button" type="button" title="Оновити чати" aria-label="Оновити чати">↻</button></div>
         <div id="chatList" class="chat-list"><div class="empty">Завантаження чатів…</div></div>
 
         <details class="tool-panel" open>
@@ -80,20 +82,20 @@
         </details>
       </section>
 
-      <div class="status-box"><span id="connectionDot" class="dot offline"></span><span id="connectionText">SignalR: не підключено</span></div>
+      <div class="status-box"><span id="connectionDot" class="dot offline"></span><span id="connectionText" role="status" aria-live="polite">SignalR: не підключено</span></div>
     </aside>
 
     <main class="main">
       <header class="topbar">
-        <div><h2 id="screenTitle">Тест чату</h2><p id="screenSubtitle">Увійди або зареєструй тестового користувача</p></div>
-        <div class="api-status" id="apiStatus">API: очікування</div>
+        <div><h2 id="screenTitle">Вітаємо в Telegrama</h2><p id="screenSubtitle">Увійдіть або створіть обліковий запис</p></div>
+        <div class="api-status" id="apiStatus" role="status" aria-live="polite">API: очікування</div>
       </header>
 
       <section class="content">
         <section id="welcome" class="welcome">
           <div class="welcome-icon">T</div>
-          <h2>Перевірка бекенду Telegrama</h2>
-          <p>Увійди двома різними акаунтами у двох вікнах браузера, щоб перевірити обмін повідомленнями в реальному часі.</p>
+          <h2>Спілкування в Telegrama</h2>
+          <p>Увійди або створи обліковий запис, щоб продовжити до своїх чатів.</p>
         </section>
 
         <section id="chatView" class="chat-view hidden">
@@ -105,13 +107,14 @@
           </form>
         </section>
 
-        <details class="debug" open>
+        <details class="debug hidden">
           <summary class="debug-header"><strong>Журнал запитів і SignalR</strong><button id="clearLogBtn" class="icon-button" type="button">Очистити</button></summary>
           <pre id="log"></pre>
         </details>
       </section>
     </main>
   </div>
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
   <script src="/js/app.js"></script>
 </body>

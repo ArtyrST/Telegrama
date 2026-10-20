@@ -111,6 +111,9 @@ namespace Telegrama.Migrations
                     b.Property<bool>("IsChanged")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Message")
                         .IsRequired()
                         .HasColumnType("text");
@@ -128,6 +131,43 @@ namespace Telegrama.Migrations
                     b.HasIndex("SenderId");
 
                     b.ToTable("Messages");
+                });
+
+            modelBuilder.Entity("Telegrama.API.Features.Users.Auth.RefreshTokenEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReplacedByTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "ExpiresAt");
+
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("Telegrama.API.Features.Users.UserEntity", b =>
@@ -246,6 +286,17 @@ namespace Telegrama.Migrations
                     b.Navigation("Sender");
                 });
 
+            modelBuilder.Entity("Telegrama.API.Features.Users.Auth.RefreshTokenEntity", b =>
+                {
+                    b.HasOne("Telegrama.API.Features.Users.UserEntity", "User")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Telegrama.API.Features.Users.Verif.VerifCodeEntity", b =>
                 {
                     b.HasOne("Telegrama.API.Features.Users.UserEntity", "User")
@@ -274,6 +325,8 @@ namespace Telegrama.Migrations
                     b.Navigation("Code");
 
                     b.Navigation("Profiles");
+
+                    b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618
         }

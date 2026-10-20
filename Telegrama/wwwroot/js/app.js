@@ -1,24 +1,45 @@
 const state = {
-    token: localStorage.getItem("telegrama_token"),
+    token: sessionStorage.getItem("telegrama_token"),
     user: readSavedUser(),
     chats: [],
     activeChat: null,
     connection: null
 };
 let resendCooldownTimer = null;
+let toastTimer = null;
+let refreshTimer = null;
+let refreshPromise = null;
+const DEBUG_ENABLED = new URLSearchParams(window.location.search).get("debug") === "1";
 
 const $ = id => document.getElementById(id);
+document.querySelector(".debug").classList.toggle("hidden", !DEBUG_ENABLED);
+try {
+    // Remove tokens left by the earlier test client version.
+    localStorage.removeItem("telegrama_token");
+    localStorage.removeItem("telegrama_user");
+} catch { /* Storage may be disabled by the browser. */ }
 
 function readSavedUser() {
-    try { return JSON.parse(localStorage.getItem("telegrama_user") || "null"); }
+    try { return JSON.parse(sessionStorage.getItem("telegrama_user") || "null"); }
     catch { return null; }
 }
 
-function log(message, data = null) {
+function log(message) {
+    if (!DEBUG_ENABLED) return;
     const box = $("log");
-    const detail = data === null ? "" : `\n${JSON.stringify(data, null, 2)}`;
-    box.textContent += `[${new Date().toLocaleTimeString()}] ${message}${detail}\n\n`;
+    box.textContent += `[${new Date().toLocaleTimeString()}] ${message}\n\n`;
+    const entries = box.textContent.split("\n\n").filter(Boolean);
+    if (entries.length > 100) box.textContent = `${entries.slice(-100).join("\n\n")}\n\n`;
     box.scrollTop = box.scrollHeight;
+}
+
+function showToast(message, kind = "info") {
+    const toast = $("toast");
+    toast.textContent = message;
+    toast.dataset.kind = kind;
+    toast.classList.remove("hidden");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.add("hidden"), 5000);
 }
 
 function setConnection(text, online = false) {
@@ -29,37 +50,122 @@ function setConnection(text, online = false) {
 function saveAuth(token, user) {
     state.token = token;
     state.user = user;
-    localStorage.setItem("telegrama_token", token);
-    localStorage.setItem("telegrama_user", JSON.stringify(user));
+    sessionStorage.setItem("telegrama_token", token);
+    sessionStorage.setItem("telegrama_user", JSON.stringify(user));
+    scheduleTokenRefresh();
 }
 
 function clearAuth() {
     state.token = null;
     state.user = null;
-    localStorage.removeItem("telegrama_token");
-    localStorage.removeItem("telegrama_user");
+    sessionStorage.removeItem("telegrama_token");
+    sessionStorage.removeItem("telegrama_user");
+    clearTimeout(refreshTimer);
+    refreshTimer = null;
 }
 
 async function api(url, options = {}) {
+    const hadToken = Boolean(state.token);
     const headers = new Headers(options.headers || {});
     if (state.token) headers.set("Authorization", `Bearer ${state.token}`);
 
-    const response = await fetch(url, { ...options, headers });
+    let response;
+    try {
+        const send = () => fetch(url, { ...options, headers });
+        response = await send();
+        if (response.status === 401 && hadToken) {
+            try {
+                await refreshAccessToken();
+                headers.set("Authorization", `Bearer ${state.token}`);
+                response = await send();
+                if (state.connection) void connectSignalR();
+                if (response.status === 401) expireSession();
+            } catch {
+                expireSession();
+            }
+        }
+    } catch (cause) {
+        $("apiStatus").textContent = "API: немає з’єднання";
+        log(`${options.method || "GET"} ${new URL(url, window.location.origin).pathname} → network error`);
+        const error = new Error("Не вдалося з’єднатися із сервером. Перевір інтернет і спробуй ще раз.");
+        error.cause = cause;
+        throw error;
+    }
     const text = await response.text();
     let data = null;
     try { data = text ? JSON.parse(text) : null; }
     catch { data = text; }
 
     $("apiStatus").textContent = `API: ${response.status} ${response.statusText}`;
-    log(`${options.method || "GET"} ${url} → ${response.status}`, data);
+    // Do not write API response bodies to the browser journal: login responses contain JWTs.
+    log(`${options.method || "GET"} ${new URL(url, window.location.origin).pathname} → ${response.status}`);
+
+    if (response.status === 401 && hadToken) expireSession();
 
     if (!response.ok || data?.isSuccess === false) {
-        const validation = data?.errors ? Object.values(data.errors).flat().join("; ") : "";
-        const error = new Error(data?.message || data?.title || validation || `HTTP ${response.status}`);
+        const validation = data?.errors
+            ? Object.values(data.errors).flat().filter(value => typeof value === "string").join("; ")
+            : "";
+        const error = new Error(data?.message || data?.Message || data?.title || validation || `Помилка запиту (${response.status}).`);
         error.statusCode = response.status;
         throw error;
     }
     return data;
+}
+
+async function refreshAccessToken() {
+    if (refreshPromise) return refreshPromise;
+    refreshPromise = (async () => {
+        const sendRefreshRequest = () => fetch("/api/users/session/refresh", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { Accept: "application/json" }
+        });
+        let response = await sendRefreshRequest();
+        // Two browser tabs can reach refresh at once; allow the winning rotation to update the shared cookie.
+        if (response.status === 401) {
+            await new Promise(resolve => setTimeout(resolve, 150));
+            response = await sendRefreshRequest();
+        }
+        const text = await response.text();
+        let result = null;
+        try { result = text ? JSON.parse(text) : null; }
+        catch { result = null; }
+
+        const token = payloadOf(result);
+        if (!response.ok || result?.isSuccess === false || typeof token !== "string") {
+            throw new Error("Не вдалося оновити сесію.");
+        }
+
+        state.token = token;
+        sessionStorage.setItem("telegrama_token", token);
+        scheduleTokenRefresh();
+        log("POST /api/users/session/refresh → успішно");
+        return token;
+    })().finally(() => {
+        refreshPromise = null;
+    });
+    return refreshPromise;
+}
+
+function scheduleTokenRefresh() {
+    clearTimeout(refreshTimer);
+    if (!state.token) return;
+
+    let delay = 1000;
+    try {
+        const expiresAt = Number(decodeJwt(state.token).exp) * 1000;
+        if (Number.isFinite(expiresAt)) delay = Math.max(1000, expiresAt - Date.now() - 60_000);
+    } catch { /* An invalid/expired access token will be replaced on startup or next request. */ }
+
+    refreshTimer = setTimeout(async () => {
+        try {
+            await refreshAccessToken();
+            if (state.connection) await connectSignalR();
+        } catch {
+            expireSession();
+        }
+    }, delay);
 }
 
 function formBody(values) {
@@ -83,7 +189,7 @@ function showAuthenticated() {
     $("userTag").textContent = state.user?.userTag || "";
     $("userAvatar").textContent = name.charAt(0).toUpperCase();
     $("screenTitle").textContent = "Мої чати";
-    $("screenSubtitle").textContent = "Авторизовано через JWT · SignalR підключається";
+    $("screenSubtitle").textContent = "Ваші особисті та групові розмови";
 
     loadChats();
     connectSignalR();
@@ -94,9 +200,19 @@ function showLoggedOut() {
     $("userPanel").classList.add("hidden");
     $("welcome").classList.remove("hidden");
     $("chatView").classList.add("hidden");
-    $("screenTitle").textContent = "Тест чату";
-    $("screenSubtitle").textContent = "Увійди або зареєструй тестового користувача";
+    $("screenTitle").textContent = "Вітаємо в Telegrama";
+    $("screenSubtitle").textContent = "Увійдіть або створіть обліковий запис";
     setConnection("SignalR: не підключено");
+}
+
+function expireSession() {
+    clearAuth();
+    if (state.connection) state.connection.stop().catch(() => {});
+    state.connection = null;
+    state.chats = [];
+    state.activeChat = null;
+    showLoggedOut();
+    showToast("Сесія завершилась. Увійдіть знову.", "error");
 }
 
 function decodeJwt(token) {
@@ -224,7 +340,7 @@ function renderChats() {
 
     list.innerHTML = state.chats.map((chat, index) => `
       <button class="chat-item ${state.activeChat?.id === chat.id ? "active" : ""}" data-index="${index}" type="button">
-        <strong>${escapeHtml(chat.name || "Без назви")}</strong>
+        <span class="chat-item-title"><strong>${escapeHtml(chat.name || "Без назви")}</strong>${chat.unreadCount > 0 ? `<span class="unread-badge" aria-label="Непрочитаних: ${Number(chat.unreadCount)}">${Number(chat.unreadCount) > 99 ? "99+" : Number(chat.unreadCount)}</span>` : ""}</span>
         <small>${chat.chatType === 3 ? "Direct" : `Група · тип ${chat.chatType}`} · ${chat.usersCount ?? 0} учасн.</small>
       </button>`).join("");
 
@@ -256,6 +372,7 @@ async function searchTag(tag) {
 }
 
 async function createDirect(user) {
+    const existingIds = new Set(state.chats.filter(chat => chat.chatType === 3).map(chat => chat.id.toLowerCase()));
     try {
         await api("/api/chats/create-direct", {
             method: "POST",
@@ -263,13 +380,25 @@ async function createDirect(user) {
             body: formBody({ GuestId: user.id })
         });
         await loadChats();
-        const direct = state.chats.find(chat => chat.chatType === 3 && chat.name === user.name);
-        if (direct) await selectChat(direct);
-        log(`Direct-чат із ${user.name} створено.`);
+        const direct = state.chats.find(chat => chat.chatType === 3 && !existingIds.has(chat.id.toLowerCase()));
+        if (direct) {
+            // The current API returns a placeholder name for direct chats.
+            // This local label is only a convenience for the account that created it.
+            direct.name = user.name;
+            renderChats();
+            await selectChat(direct);
+        } else {
+            showToast("Чат створено. Онови список чатів, якщо він не з’явився.", "success");
+        }
+        log("Direct-чат створено.");
     } catch (error) {
         await loadChats();
-        const existing = state.chats.find(chat => chat.chatType === 3 && chat.name === user.name);
+        const directChats = state.chats.filter(chat => chat.chatType === 3);
+        const existing = directChats.find(chat => chat.name === user.name)
+            || (directChats.length === 1 ? directChats[0] : null);
         if (existing && /already exist|вже існує/i.test(error.message)) {
+            existing.name = user.name;
+            renderChats();
             await selectChat(existing);
             return;
         }
@@ -303,13 +432,20 @@ async function connectSignalR() {
 
     connection.on("ReceiveMessage", message => {
         const chatId = message?.chatId ?? message?.ChatId;
-        if (state.activeChat?.id === chatId) appendMessage(message);
-        log("SignalR ReceiveMessage", message);
+        if (sameId(state.activeChat?.id, chatId)) {
+            appendMessage(message);
+            markChatRead(chatId);
+        } else {
+            loadChats();
+        }
+        log("SignalR: отримано повідомлення");
     });
-    connection.on("UserTyping", payload => log("SignalR UserTyping", payload));
+    connection.on("MessageEdited", message => updateMessage(message, false));
+    connection.on("MessageDeleted", message => updateMessage(message, true));
+    connection.on("UserTyping", () => log("SignalR: подія набору тексту"));
     connection.onreconnecting(error => {
         setConnection("SignalR: перепідключення…");
-        log("SignalR reconnecting", error?.message);
+        log("SignalR: повторне підключення");
     });
     connection.onreconnected(async () => {
         setConnection("SignalR: підключено", true);
@@ -318,7 +454,7 @@ async function connectSignalR() {
     });
     connection.onclose(error => {
         setConnection("SignalR: відключено");
-        if (error) log("SignalR closed", error.message);
+        if (error) log("SignalR: з’єднання закрито з помилкою");
     });
 
     try {
@@ -328,7 +464,7 @@ async function connectSignalR() {
         if (state.activeChat) await joinRoom(state.activeChat.id);
     } catch (error) {
         setConnection("SignalR: помилка підключення");
-        log("SignalR start failed", error.message);
+        log("SignalR: не вдалося підключитися");
     }
 }
 
@@ -338,7 +474,7 @@ async function joinRoom(chatId) {
         await state.connection.invoke("JoinRoom", chatId);
         log(`JoinRoom ${chatId}: успішно`);
     } catch (error) {
-        log("JoinRoom failed", error.message);
+        log("SignalR: не вдалося приєднатися до чату");
     }
 }
 
@@ -360,6 +496,7 @@ async function selectChat(chat) {
         const result = await api(`/api/chats/${encodeURIComponent(selectedId)}/last-messages?limit=50`);
         if (state.activeChat?.id !== selectedId) return;
         renderMessages(payloadOf(result) || []);
+        await markChatRead(selectedId);
     } catch (error) {
         if (state.activeChat?.id === selectedId) {
             $("messages").innerHTML = `<div class="empty">Не вдалося завантажити історію: ${escapeHtml(error.message)}</div>`;
@@ -386,15 +523,19 @@ function appendMessage(message, scroll = true) {
     const text = message?.text ?? message?.Text ?? "";
     const sentAt = message?.sentAt ?? message?.SentAt;
     const changed = message?.isChanged ?? message?.IsChanged ?? false;
+    const deleted = message?.isDeleted ?? message?.IsDeleted ?? false;
+    const id = message?.id ?? message?.Id;
 
     const item = document.createElement("article");
     item.className = "message";
+    if (id) item.dataset.messageId = id;
+    if (deleted) item.classList.add("message-deleted");
     const senderElement = document.createElement("div");
     senderElement.className = "sender";
     senderElement.textContent = sender;
     const textElement = document.createElement("div");
     textElement.className = "text";
-    textElement.textContent = text;
+    textElement.textContent = deleted ? "Повідомлення видалено" : text;
     const timeElement = document.createElement("div");
     timeElement.className = "time";
     const parsedDate = sentAt ? new Date(sentAt) : new Date();
@@ -402,6 +543,36 @@ function appendMessage(message, scroll = true) {
     item.append(senderElement, textElement, timeElement);
     container.appendChild(item);
     if (scroll) container.scrollTop = container.scrollHeight;
+}
+
+function sameId(first, second) {
+    return typeof first === "string" && typeof second === "string" && first.toLowerCase() === second.toLowerCase();
+}
+
+function updateMessage(message, deleted) {
+    const id = message?.id ?? message?.Id;
+    const item = [...$("messages").querySelectorAll("[data-message-id]")]
+        .find(element => sameId(element.dataset.messageId, id));
+    if (!item) return;
+    const text = item.querySelector(".text");
+    const time = item.querySelector(".time");
+    const isDeleted = deleted || (message?.isDeleted ?? message?.IsDeleted ?? false);
+    text.textContent = isDeleted ? "Повідомлення видалено" : (message?.text ?? message?.Text ?? "");
+    item.classList.toggle("message-deleted", isDeleted);
+    const changed = message?.isChanged ?? message?.IsChanged ?? false;
+    if (changed && time && !time.textContent.includes("змінено")) time.textContent += " · змінено";
+    log(isDeleted ? "SignalR: повідомлення видалено" : "SignalR: повідомлення змінено");
+}
+
+async function markChatRead(chatId) {
+    try {
+        await api(`/api/chats/${encodeURIComponent(chatId)}/read`, { method: "POST" });
+        const chat = state.chats.find(item => sameId(item.id, chatId));
+        if (chat) chat.unreadCount = 0;
+        renderChats();
+    } catch (error) {
+        log("Не вдалося оновити стан прочитання чату");
+    }
 }
 
 async function sendMessage(text) {
@@ -413,8 +584,8 @@ async function sendMessage(text) {
 }
 
 function showError(error) {
-    log("Помилка", error.message);
-    alert(error.message);
+    log("Операція завершилась помилкою");
+    showToast(error.message || "Сталася помилка. Спробуйте ще раз.", "error");
 }
 
 function escapeHtml(value) {
@@ -501,7 +672,7 @@ $("tagSearchForm").addEventListener("submit", async event => {
     catch (error) {
         $("tagSearchResult").className = "result-box empty error-text";
         $("tagSearchResult").textContent = error.message;
-        log("Пошук за тегом не вдався", error.message);
+        log("Пошук за тегом завершився помилкою");
     }
 });
 
@@ -537,6 +708,8 @@ $("joinRoomBtn").addEventListener("click", () => state.activeChat && joinRoom(st
 $("clearLogBtn").addEventListener("click", () => { $("log").textContent = ""; });
 
 $("logoutBtn").addEventListener("click", async () => {
+    try { await api("/api/users/session/logout", { method: "POST" }); }
+    catch { log("POST /api/users/session/logout → помилка"); }
     if (state.connection) {
         try { await state.connection.stop(); } catch { /* ignore stop errors */ }
     }
@@ -548,5 +721,24 @@ $("logoutBtn").addEventListener("click", async () => {
     showLoggedOut();
 });
 
-if (state.token) showAuthenticated();
-else showLoggedOut();
+async function restoreSession() {
+    if (state.token) {
+        try {
+            const expiresAt = Number(decodeJwt(state.token).exp) * 1000;
+            if (expiresAt > Date.now() + 30_000) {
+                scheduleTokenRefresh();
+                showAuthenticated();
+                return;
+            }
+        } catch { /* Try the HttpOnly refresh cookie below. */ }
+    }
+
+    try {
+        await refreshAccessToken();
+        showAuthenticated();
+    } catch {
+        showLoggedOut();
+    }
+}
+
+restoreSession();
