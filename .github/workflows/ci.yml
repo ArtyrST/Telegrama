@@ -1,0 +1,62 @@
+name: telegrama-ci
+on:
+  push:
+    branches: 
+      - master
+      - feature/*
+  pull_request:
+    branches: 
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Build and Test .Net
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore dependencies
+        run: dotnet restore Telegrama.slnx
+
+      - name: Build Application
+        run: dotnet build Telegrama.slnx --no-restore -c Release
+
+      - name: Run Tests
+        run: dotnet test Telegrama.Tests/Telegrama.Tests.csproj --no-restore -c Release --logger "trx;LogFileName=test-results.trx"
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/TestResults/*.trx'
+          if-no-files-found: ignore
+        
+  docker: 
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build production image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Telegrama/Dockerfile
+          push: false
+          tags: telegrama:ci
+      
